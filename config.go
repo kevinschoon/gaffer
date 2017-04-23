@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	//"github.com/satori/go.uuid"
 )
 
 const ZKClass string = "org.apache.zookeeper.server.quorum.QuorumPeerMain"
@@ -18,7 +19,7 @@ var (
 	}
 )
 
-// Opetion represents a process configuration
+// Option represents a process configuration
 type Option struct {
 	Name  string          `json:"name"`
 	Value string          `json:"value"`
@@ -27,6 +28,7 @@ type Option struct {
 
 // Cluster represents the overall configuration of a Mesos cluster
 type Cluster struct {
+	ID               string       `json:"id"`
 	Name             string       `json:"name"`
 	Initialized      bool         `json:"initialized"`
 	ZookeeperReady   bool         `json:"zookeeper_ready"`
