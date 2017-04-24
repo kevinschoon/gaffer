@@ -14,17 +14,6 @@ import (
 const ZKClass string = "org.apache.zookeeper.server.quorum.QuorumPeerMain"
 
 var (
-	ZKLog4J []byte = []byte(`
-zookeeper.root.logger=INFO, CONSOLE
-zookeeper.console.threshold=INFO
-log4j.rootLogger=${zookeeper.root.logger}
-log4j.appender.CONSOLE=org.apache.log4j.ConsoleAppender
-log4j.appender.CONSOLE.Threshold=${zookeeper.console.threshold}
-log4j.appender.CONSOLE.layout=org.apache.log4j.PatternLayout
-log4j.appender.CONSOLE.layout.ConversionPattern=%d{ISO8601} [myid:%X{myid}] - %-5p [%t:%C{1}@%L] - %m%n`)
-)
-
-var (
 	// TODO infer all of this God forsaken shit
 	DefaultZKClasspath = []string{
 		"/usr/share/zookeeper/lib/jline-0.9.94.jar",
@@ -34,6 +23,15 @@ var (
 		"/usr/share/zookeeper/lib/slf4j-log4j12-1.6.1.jar",
 		"/usr/share/zookeeper/lib/zookeeper-3.4.9.jar",
 	}
+	DefaultZKLog4j []byte = []byte(`
+zookeeper.root.logger=INFO, CONSOLE
+zookeeper.console.threshold=INFO
+log4j.rootLogger=${zookeeper.root.logger}
+log4j.appender.CONSOLE=org.apache.log4j.ConsoleAppender
+log4j.appender.CONSOLE.Threshold=${zookeeper.console.threshold}
+log4j.appender.CONSOLE.layout=org.apache.log4j.PatternLayout
+log4j.appender.CONSOLE.layout.ConversionPattern=%d{ISO8601} [myid:%X{myid}] - %-5p [%t:%C{1}@%L] - %m%n`)
+
 	DefaultZKOptions = []*Option{
 		&Option{
 			Name:  "tickTime",
@@ -131,28 +129,38 @@ type Zookeeper struct {
 	Options   []*Option `json:"options"`
 }
 
-func (zk *Zookeeper) Process(log *zap.Logger) *Process {
-	d, _ := ioutil.TempDir("", "g")
-	cfg, _ := ioutil.TempFile(d, "g")
-	for _, opt := range zk.Options {
-		cfg.WriteString(fmt.Sprintf("%s=%s\n", opt.Name, opt.Value))
+func (zk *Zookeeper) Process(log *zap.Logger) (*Process, error) {
+	tmpDir, err := ioutil.TempDir("", "gaffer")
+	if err != nil {
+		return nil, err
 	}
-	l, _ := ioutil.TempFile(d, "g")
-	l.Write(ZKLog4J)
-	//cp := []string{}
-	//for _, s := range zk.Classpath {
-	//	cp = append(cp, s)
-	//}
-	//cp = append(cp, l.Name())
+	tmpCfg, err := ioutil.TempFile(tmpDir, "gaffer")
+	if err != nil {
+		return nil, err
+	}
+	for _, opt := range zk.Options {
+		_, err = tmpCfg.WriteString(fmt.Sprintf("%s=%s\n", opt.Name, opt.Value))
+		if err != nil {
+			return nil, err
+		}
+	}
+	tmpCfgL4j, err := ioutil.TempFile(tmpDir, "gaffer")
+	if err != nil {
+		return nil, err
+	}
+	_, err = tmpCfgL4j.Write(DefaultZKLog4j)
+	if err != nil {
+		return nil, err
+	}
 	return NewProcess(
 		log,
 		zk.Java,
 		"-cp",
 		strings.Join(zk.Classpath, ":"),
-		fmt.Sprintf("-Dlog4j.configuration=file://%s", l.Name()),
+		fmt.Sprintf("-Dlog4j.configuration=file://%s", tmpCfgL4j.Name()),
 		ZKClass,
-		cfg.Name(),
-	)
+		tmpCfg.Name(),
+	), nil
 }
 
 func NewZookeeper(cluster *Cluster) (*Zookeeper, error) {

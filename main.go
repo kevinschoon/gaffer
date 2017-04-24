@@ -68,7 +68,10 @@ func main() {
 				)
 			}
 			// Create new Zookeeper process
-			proc := zk.Process(logger)
+			proc, err := zk.Process(logger)
+			if err != nil {
+				return err
+			}
 			// Start the process
 			err = proc.Start()
 			if err != nil {
