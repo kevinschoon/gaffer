@@ -62,11 +62,12 @@ func (s Server) Handler(fn HandleFunc) httprouter.Handle {
 	}
 }
 func (s *Server) Cluster(w http.ResponseWriter, r *http.Request, u *User, p httprouter.Params) error {
-	query := &Query{User: u}
+	query := &Query{}
 	err := json.NewDecoder(r.Body).Decode(query)
 	if err != nil {
 		return err
 	}
+	query.User = u
 	if query.Type == "" {
 		return fmt.Errorf("must specify Type")
 	}

@@ -30,15 +30,36 @@ type Option struct {
 type Cluster struct {
 	ID               string       `json:"id"`
 	Name             string       `json:"name"`
-	Initialized      bool         `json:"initialized"`
-	ZookeeperReady   bool         `json:"zookeeper_ready"`
-	MesosReady       bool         `json:"mesos_ready"`
 	Size             int          `json:"size"`
 	ZookeeperOptions []*Option    `json:"zookeeper_options"`
 	MasterOptions    []*Option    `json:"master_options"`
 	AgentOptions     []*Option    `json:"agent_options"`
 	Masters          []*Master    `json:"masters"`
 	Zookeepers       []*Zookeeper `json:"zookeepers"`
+}
+
+func (c Cluster) ZKReady() bool {
+	if c.Zookeepers == nil {
+		return false
+	}
+	for i := 0; i < c.Size; i++ {
+		if !c.Zookeepers[i].Running {
+			return false
+		}
+	}
+	return true
+}
+
+func (c Cluster) MesosReady() bool {
+	if c.Masters == nil {
+		return false
+	}
+	for i := 0; i < c.Size; i++ {
+		if !c.Masters[i].Running {
+			return false
+		}
+	}
+	return true
 }
 
 // Master represents a single Mesos Master process
