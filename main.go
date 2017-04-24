@@ -17,8 +17,9 @@ func failOnErr(err error) {
 func main() {
 	logger, _ := zap.NewDevelopment()
 	var (
-		mode  = flag.String("mode", "", "server mode [server, master, agent, zookeeper]")
-		dbStr = flag.String("db", "./gaffer.db", "database connection string")
+		mode      = flag.String("mode", "", "server mode [server, master, agent, zookeeper]")
+		anonymous = flag.Bool("anonymous", false, "allow anonymous access")
+		dbStr     = flag.String("db", "./gaffer.db", "database connection string")
 	)
 	flag.Parse()
 	switch *mode {
@@ -27,7 +28,7 @@ func main() {
 		failOnErr(err)
 		defer db.Close()
 		server := NewServer(db, logger)
-		server.Anonymous = true
+		server.Anonymous = *anonymous
 		failOnErr(server.Serve())
 	case "master":
 	case "agent":

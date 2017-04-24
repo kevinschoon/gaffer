@@ -28,22 +28,27 @@ func (s Server) Handler(fn HandleFunc) httprouter.Handle {
 		if s.Anonymous {
 			u = &User{1, ""}
 		} else {
-			resp, err := s.store.Query(&Query{Type: READ_USER, User: &User{Token: r.Header.Get("Token")}})
-			if err != nil {
+			_, token, ok := r.BasicAuth()
+			if ok {
+				resp, err := s.store.Query(&Query{Type: READ_USER, User: &User{Token: token}})
+				if err != nil {
+					s.log.Warn("server", zap.String("cannot authenticate user", err.Error()))
+					http.Error(w, err.Error(), 500)
+					return
+				}
 				u = resp.User
 			}
 		}
-		if u != nil && err == nil {
+		if u != nil {
 			err = fn(w, r, u, p)
-		}
-		if err != nil {
-			if u == nil {
-				s.log.Warn("server", zap.String("error", "user unauthorized"))
-				http.Error(w, "unauthorized", 401)
-			} else {
+			if err != nil {
 				s.log.Warn("server", zap.String("error", err.Error()))
 				http.Error(w, err.Error(), 500)
 			}
+		} else {
+			s.log.Warn("server", zap.String("error", "user unauthorized"))
+			w.Header().Set("WWW-Authenticate", "Basic realm=Restricted")
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 		}
 		s.log.Info(
 			"server",
