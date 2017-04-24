@@ -3,8 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/cenkalti/backoff"
 	"go.uber.org/zap"
 	"os"
+	"syscall"
+	"time"
 )
 
 func failOnErr(err error) {
@@ -44,34 +47,78 @@ func main() {
 		failOnErr(err)
 		failOnErr(client.UntilMasterReady(c))
 	case "zookeeper":
+		client := NewClient(*endpoint, *token, logger)
+		// Main ZK launch function
+		fn := func() error {
+			// Request cluster information
+			c, err := client.Cluster(*cluster)
+			if err != nil {
+				return err
+			}
+			// Create new Zookeeper configuration
+			zk, err := NewZookeeper(c)
+			if err != nil {
+				return err
+			}
+			// Zookeeper was disconnected
+			if zk.Running {
+				logger.Info(
+					"zookeeper",
+					zap.String("msg", "re-joining cluster"),
+				)
+			}
+			// Create new Zookeeper process
+			proc := zk.Process(logger)
+			// Start the process
+			err = proc.Start()
+			if err != nil {
+				return err
+			}
+			// Record that Zookeeper is now running
+			zk.Running = true
+			// Update the remote cluster configuration
+			err = client.Update(c)
+			if err != nil {
+				return err
+			}
+			// Check if the process is running every 2s
+			for {
+				// kill -n 0 <PID>
+				err := proc.Signal(syscall.Signal(0))
+				if err != nil {
+					// Zookeeper is no longer running
+					zk.Running = false
+					if err := client.Update(c); err != nil {
+						// No longer can update the server, process is dead
+						logger.Error(
+							"zookeeper",
+							zap.Error(err),
+						)
+					}
+					// Process is dead
+					return err
+				}
+				// Process is still running but server unable to tell server
+				if err := client.Update(c); err != nil {
+					logger.Error(
+						"zookeeper",
+						zap.Error(err),
+					)
+				}
+				time.Sleep(2000 * time.Millisecond)
+			}
+		}
+		notify := func(err error, d time.Duration) {
+			logger.Info(
+				"zookeeper",
+				zap.String("msg", "zookeeper process has died"),
+				zap.Duration("duration", d),
+				zap.Error(err),
+			)
+		}
+		failOnErr(backoff.RetryNotify(fn, backoff.NewExponentialBackOff(), notify))
 	default:
 		flag.PrintDefaults()
 		failOnErr(fmt.Errorf("Invalid server mode %s", *mode))
 	}
-	/*
-			p := process{
-				cmd:  exec.Command("/home/kevin/repos/go/src/github.com/vektorlab/gaffer/script.sh"),
-				env:  map[string]string{"COOL": "BEANS"},
-				err:  make(chan error),
-				quit: make(chan struct{}, 1),
-				log:  logger,
-			}
-			if err := p.Start(); err != nil {
-				fmt.Println(err.Error())
-				os.Exit(1)
-			}
-		loop:
-			for {
-				select {
-				case err := <-p.err:
-					fmt.Println("Uh oh", err.Error())
-					break loop
-				case <-p.quit:
-					fmt.Println("quittin")
-					break loop
-				default:
-					time.Sleep(100 * time.Millisecond)
-				}
-			}
-	*/
 }

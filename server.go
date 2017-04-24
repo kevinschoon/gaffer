@@ -42,7 +42,7 @@ func (s Server) Handler(fn HandleFunc) httprouter.Handle {
 		if u != nil {
 			err = fn(w, r, u, p)
 			if err != nil {
-				s.log.Warn("server", zap.String("error", err.Error()))
+				s.log.Warn("server", zap.Error(err))
 				http.Error(w, err.Error(), 500)
 			}
 		} else {

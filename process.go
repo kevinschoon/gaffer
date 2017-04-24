@@ -10,14 +10,16 @@ import (
 	"syscall"
 )
 
+/*
 type Process interface {
 	Start() error
 	Kill() error
 	Pid() int
 	Signal(syscall.Signal) error
 }
+*/
 
-type process struct {
+type Process struct {
 	cmd  *exec.Cmd
 	err  chan error
 	quit chan struct{}
@@ -25,9 +27,10 @@ type process struct {
 	log  *zap.Logger
 }
 
-func newProcess(logger *zap.Logger, args ...string) *process {
-	return &process{
-		cmd:  exec.Command(args[0], args[0:]...),
+func NewProcess(logger *zap.Logger, args ...string) *Process {
+	return &Process{
+		log:  logger,
+		cmd:  exec.Command(args[0], args[1:]...),
 		err:  make(chan error),
 		quit: make(chan struct{}),
 		env:  map[string]string{},
@@ -35,7 +38,7 @@ func newProcess(logger *zap.Logger, args ...string) *process {
 }
 
 // Start runs the command
-func (p *process) Start() error {
+func (p *Process) Start() error {
 
 	// Append any local envs
 	p.cmd.Env = os.Environ()
@@ -69,7 +72,7 @@ func (p *process) Start() error {
 	go func() {
 		scanner := bufio.NewScanner(re)
 		for scanner.Scan() {
-			p.log.Warn(
+			p.log.Info(
 				p.Name(),
 				zap.Int("PID", p.Pid()),
 				zap.String("STDERR", scanner.Text()),
@@ -82,6 +85,12 @@ func (p *process) Start() error {
 		return err
 	}
 
+	p.log.Info(
+		"process",
+		zap.String("process", p.cmd.Path),
+		zap.Strings("args", p.cmd.Args),
+	)
+
 	go func() {
 		err := p.cmd.Wait()
 		if err != nil {
@@ -93,7 +102,7 @@ func (p *process) Start() error {
 	return nil
 }
 
-func (p *process) Name() string {
+func (p *Process) Name() string {
 	if p.cmd != nil {
 		split := strings.Split(p.cmd.Path, "/")
 		return split[len(split)-1]
@@ -102,13 +111,13 @@ func (p *process) Name() string {
 }
 
 // Kill the entire Process group.
-func (p *process) Kill() error {
+func (p *Process) Kill() error {
 	processGroup := 0 - p.cmd.Process.Pid
 	return syscall.Kill(processGroup, syscall.SIGKILL)
 }
 
 // Pid return Process PID
-func (p *process) Pid() int {
+func (p *Process) Pid() int {
 	if p.cmd == nil || p.cmd.Process == nil {
 		return 0
 	}
@@ -116,6 +125,6 @@ func (p *process) Pid() int {
 }
 
 // Signal sends a signal to the Process
-func (p *process) Signal(sig syscall.Signal) error {
+func (p *Process) Signal(sig syscall.Signal) error {
 	return syscall.Kill(p.cmd.Process.Pid, sig)
 }

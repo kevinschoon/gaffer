@@ -44,22 +44,24 @@ func (s *SQLStore) Query(q *Query) (*Response, error) {
 	}
 	switch q.Type {
 	case CREATE:
-		tx, err := s.db.Begin()
-		if err != nil {
-			return nil, err
-		}
-		stmt, err := tx.Prepare("INSERT INTO clusters(id, user, data) values(?, ?, ?)")
-		if err != nil {
-			return nil, err
-		}
-		defer stmt.Close()
 		raw, err := json.Marshal(q.Cluster)
 		if err != nil {
 			return nil, err
 		}
+		tx, err := s.db.Begin()
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+		stmt, err := tx.Prepare("INSERT INTO clusters(id, user, data) values(?, ?, ?)")
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+		defer stmt.Close()
 		_, err = stmt.Exec(q.Cluster.ID, q.User.ID, string(raw))
 		if err != nil {
-			tx.Commit()
+			tx.Rollback()
 			return nil, err
 		}
 		err = tx.Commit()
@@ -90,20 +92,26 @@ func (s *SQLStore) Query(q *Query) (*Response, error) {
 			response.Clusters = append(response.Clusters, cluster)
 		}
 	case UPDATE:
+		raw, err := json.Marshal(q.Cluster)
+		if err != nil {
+			return nil, err
+		}
 		tx, err := s.db.Begin()
 		if err != nil {
 			return nil, err
 		}
 		stmt, err := tx.Prepare("UPDATE clusters SET data = ? WHERE id == ? AND user == ?")
 		if err != nil {
+			tx.Rollback()
 			return nil, err
 		}
 		defer stmt.Close()
-		raw, err := json.Marshal(q.Cluster)
+		_, err = stmt.Exec(string(raw), q.Cluster.ID, q.User.ID)
 		if err != nil {
+			tx.Rollback()
 			return nil, err
 		}
-		_, err = stmt.Exec(q.Cluster.Name, string(raw), q.Cluster.ID, q.User.ID)
+		err = tx.Commit()
 		if err != nil {
 			return nil, err
 		}
