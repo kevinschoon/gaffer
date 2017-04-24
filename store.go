@@ -122,10 +122,16 @@ func (s *SQLStore) Query(q *Query) (*Response, error) {
 		}
 		stmt, err := tx.Prepare("DELETE FROM clusters WHERE id == ? AND user == ?")
 		if err != nil {
+			tx.Rollback()
 			return nil, err
 		}
 		defer stmt.Close()
 		_, err = stmt.Exec(q.Cluster.ID, q.User.ID)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+		err = tx.Commit()
 		if err != nil {
 			return nil, err
 		}

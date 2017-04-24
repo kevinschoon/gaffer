@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/cenkalti/backoff"
+	//"github.com/cenkalti/backoff"
 	"go.uber.org/zap"
 	"net/http"
 	"time"
@@ -78,6 +78,7 @@ func (c Client) Update(cluster *Cluster) error {
 	return err
 }
 
+/*
 // UntilZKReady waits until a Zookeeper quorum is formed
 func (c Client) UntilZKReady(cluster *Cluster) error {
 	return backoff.Retry(func() error {
@@ -109,3 +110,4 @@ func (c Client) UntilMasterReady(cluster *Cluster) error {
 		return nil
 	}, backoff.NewExponentialBackOff())
 }
+*/
