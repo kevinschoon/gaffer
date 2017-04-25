@@ -138,6 +138,73 @@ func main() {
 		failOnErr(backoff.RetryNotify(fn, backoff.NewExponentialBackOff(), notify))
 
 	case "agent":
+		client := NewClient(*endpoint, *token, logger)
+		// Main Mesos launch function
+		fn := func() error {
+			// Request cluster information
+			c, err := client.Cluster(*cluster)
+			if err != nil {
+				return err
+			}
+			// Create new Agent configuration
+			agent := NewAgent(c)
+			// Detect the cluster state
+			state := c.State()
+			logger.Info(
+				"agent",
+				zap.String("state", state.String()),
+			)
+			// Masters are still converging
+			if state < MASTER_READY {
+				return fmt.Errorf("Masters not ready")
+			}
+			// Create new agent process
+			proc, err := agent.Process(logger)
+			if err != nil {
+				return err
+			}
+			// Start the process
+			err = proc.Start()
+			if err != nil {
+				return err
+			}
+			// Check if the process is running every 2s
+			for {
+				time.Sleep(2000 * time.Millisecond)
+				// kill -n 0 <PID>
+				err := proc.Signal(syscall.Signal(0))
+				if err != nil {
+					// Agent is no longer running
+					return err
+				}
+				// Refresh the cluster configuraiton prior to update
+				c, err = client.Cluster(*cluster)
+				if err != nil {
+					// Could not refresh cluster configuration
+					logger.Error(
+						"agent",
+						zap.Error(err),
+					)
+					continue
+				}
+				// Process is still running but server unable to tell server
+				if err := client.Update(c); err != nil {
+					logger.Error(
+						"agent",
+						zap.Error(err),
+					)
+				}
+			}
+		}
+		notify := func(err error, d time.Duration) {
+			logger.Info(
+				"agent",
+				zap.String("msg", "mesos agent process has died"),
+				zap.Duration("duration", d),
+				zap.Error(err),
+			)
+		}
+		failOnErr(backoff.RetryNotify(fn, backoff.NewExponentialBackOff(), notify))
 	case "zookeeper":
 		client := NewClient(*endpoint, *token, logger)
 		// Main ZK launch function
