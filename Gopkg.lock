@@ -1,0 +1,36 @@
+memo = ""
+
+[[projects]]
+  branch = "master"
+  name = "github.com/cenkalti/backoff"
+  packages = ["."]
+  revision = "5d150e7eec023ce7a124856b37c68e54b4050ac7"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/julienschmidt/httprouter"
+  packages = ["."]
+  revision = "6f3f3919c8781ce5c0509c83fffc887a7830c938"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/mattn/go-sqlite3"
+  packages = ["."]
+  revision = "cf7286f069c3ef596efcc87781a4653a2e7607bd"
+
+[[projects]]
+  branch = "master"
+  name = "go.uber.org/atomic"
+  packages = ["."]
+  revision = "4e336646b2ef9fc6e47be8e21594178f98e5ebcf"
+
+[[projects]]
+  branch = "master"
+  name = "go.uber.org/zap"
+  packages = ["."]
+  revision = "1550bc05539134bbf8612a35f34a79ab8bf34ee3"
+
+[[projects]]
+  name = "golang.org/x/net"
+  packages = ["context"]
+  revision = "6acef71eb69611914f7a30939ea9f6e194c78172"
