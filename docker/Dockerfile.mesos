@@ -1,0 +1,3 @@
+FROM quay.io/vektorcloud/mesos
+
+COPY bin/gaffer /bin/

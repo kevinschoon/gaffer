@@ -28,4 +28,4 @@ _testmain.go
 vendor
 release
 
-.glide
+bin

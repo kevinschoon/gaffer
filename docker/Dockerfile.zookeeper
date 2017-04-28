@@ -1,0 +1,3 @@
+FROM quay.io/vektorcloud/zookeeper
+
+COPY bin/gaffer /bin/
