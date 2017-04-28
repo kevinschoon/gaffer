@@ -1,0 +1,171 @@
+{{ $name := .Name }}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="vektor.nyc">
+    <!--<link rel="icon" href="../../favicon.ico">-->
+
+    <title>Gaffer</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="/static/css/dashboard.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <a class="navbar-brand" href="/clusters">Gaffer</a>
+            </div>
+            <div id="navbar" class="navbar-collapse collapse">
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-3 col-md-2 sidebar">
+                <ul class="nav nav-sidebar">
+                    {{if eq $name "clusters"}}
+                    <li class="active"><a href="#">Clusters </a></li>
+                    {{else}}
+                    <li><a href="/clusters">Clusters </a></li>
+                    {{end}}
+                    <hr> 
+                    {{range .Response.Clusters}} 
+                    {{if eq $name .ID}}
+                    <li class="active"><a href="/clusters/{{.ID}}">{{.ID}}</a></li>
+                    {{else}}
+                    <li><a href="/clusters/{{.ID}}">{{.ID}}</a></li>
+                    {{end}} 
+                    {{end}}
+            </div>
+            <div class="col-md-offset-2 main">
+              <h2 class="page-header">{{.Upper $name}}</h2> 
+              {{if eq $name "clusters"}}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Size</th>
+                                <th>State</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{range .Response.Clusters}}
+                            <tr>
+                                <td><a href="/clusters/{{.ID}}">{{.ID}}</a></td>
+                                <td>{{.Size}}</td>
+                                {{if eq .State.String "MASTER_READY"}}
+                                <td><span class="label label-success">{{.State}}</span></td>
+                                {{else}}
+                                <td><span class="label">{{.State}}</span></td>
+                                {{end}}
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+                {{else}}
+                <div class="row">
+                  <div class="progress">
+                    <div class="progress-bar" role="progressbar" aria-valuenow="{{.Progress}}" aria-valuemin="0" aria-valuemax="100" style="width: {{.Progress}}%;">
+                      {{.Cluster.State.String}}
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    {{if eq .Cluster.State.String "MASTER_READY"}}
+                    <div class="panel panel-success">
+                    {{else}}
+                    <div class="panel panel-default">
+                    {{end}}
+                      <div class="panel-heading">
+                        <h3 class="panel-title">{{.Cluster.State}}</h3>
+                      </div>
+                      <div class="panel-body">
+                        <ul class="list-group">
+                          <h4 class="page-header"> Zookeepers </h4>
+                            {{range .Cluster.Zookeepers}}
+                              {{if .Running}}
+                              <li class="list-group-item list-group-item-success"><a href="/clusters/{{$name}}/{{.Hostname}}">{{.Hostname}}</a></li>
+                              {{else}}
+                              <li class="list-group-item list-group-item-warning"><a href="/clusters/{{$name}}/{{.Hostname}}">{{.Hostname}}</a></li>
+                              {{end}}
+                            {{end}}
+                        </ul>
+                        <ul class="list-group">
+                          <h4 class="page-header"> Masters </h4>
+                            {{range .Cluster.Masters}}
+                              {{if .Running}}
+                              <li class="list-group-item list-group-item-success"><a href="/clusters/{{$name}}/{{.Hostname}}">{{.Hostname}}</a></li>
+                              {{else}}
+                              <li class="list-group-item list-group-item-warning"><a href="/clusters/{{$name}}/{{.Hostname}}">{{.Hostname}}</a></li>
+                              {{end}}
+                            {{end}}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-9">
+                    <div class="panel panel-default">
+                      <div class="panel-heading">
+                        <h3 class="panel-title">{{.Hostname}}</h3>
+                      </div>
+                      <div class="panel-body">
+                        {{if .Hostname}}
+                        <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Value</th>
+                                <th>Data</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{range .Node.Options}}
+                            <tr>
+                                <td>{{.Name}}</td>
+                                <td>{{.Value}}</td>
+                                <td></td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                        {{end}}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {{end}}
+            </div>
+        </div>
+    </div>
+    <footer class="footer">
+      <div class="container">
+        <p class="text-muted">
+        <a href="https://github.com/vektorlab/gaffer">github</a>
+        </p>
+      </div>
+    </footer>
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+</body>
+
+</html>

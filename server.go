@@ -5,9 +5,28 @@ import (
 	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"go.uber.org/zap"
+	"html/template"
 	"net/http"
+	"strings"
 	"time"
 )
+
+type ClusterPage struct {
+	Name     string
+	Hostname string
+	Response *Response
+	Cluster  *Cluster
+	// TODO change to interface
+	Node struct {
+		IP      string
+		Options []*Option
+	}
+}
+
+func (_ ClusterPage) Upper(s string) string { return strings.ToUpper(s) }
+func (c ClusterPage) Progress() int {
+	return ((int(c.Cluster.State()) + 1) / 6) * 100
+}
 
 type HandleFunc func(http.ResponseWriter, *http.Request, *User, httprouter.Params) error
 
@@ -52,7 +71,6 @@ func (s Server) Handler(fn HandleFunc) httprouter.Handle {
 		}
 		s.log.Info(
 			"server",
-			zap.Time("ts", start),
 			zap.Duration("duration", time.Since(start)),
 			zap.String("url", r.URL.String()),
 			zap.String("method", r.Method),
@@ -61,6 +79,7 @@ func (s Server) Handler(fn HandleFunc) httprouter.Handle {
 		)
 	}
 }
+
 func (s *Server) Cluster(w http.ResponseWriter, r *http.Request, u *User, p httprouter.Params) error {
 	query := &Query{}
 	err := json.NewDecoder(r.Body).Decode(query)
@@ -83,7 +102,94 @@ func (s *Server) Cluster(w http.ResponseWriter, r *http.Request, u *User, p http
 	return json.NewEncoder(w).Encode(resp)
 }
 
+func (s *Server) ClusterHTML(w http.ResponseWriter, r *http.Request, u *User, p httprouter.Params) error {
+	data, err := Asset("www/index.html")
+	if err != nil {
+		return err
+	}
+	tmpl, err := template.New("index").Parse(string(data))
+	if err != nil {
+		return err
+	}
+	resp, err := s.store.Query(&Query{User: u, Type: READ})
+	if err != nil {
+		return err
+	}
+	page := &ClusterPage{Response: resp}
+	page.Name = p.ByName("cluster")
+	page.Hostname = p.ByName("hostname")
+	if page.Name != "" {
+		for _, cluster := range resp.Clusters {
+			if cluster.ID == page.Name {
+				page.Cluster = cluster
+			}
+		}
+		if page.Cluster == nil {
+			http.NotFound(w, r)
+			return nil
+		}
+	} else {
+		page.Name = "clusters"
+	}
+	// TODO: Need a unique identifier, not hostname
+	if page.Hostname != "" {
+		var found bool
+		for _, zk := range page.Cluster.Zookeepers {
+			if zk.Hostname == page.Hostname {
+				found = true
+				page.Node.IP = zk.IP
+				page.Node.Options = zk.Options
+			}
+		}
+		for _, master := range page.Cluster.Masters {
+			if master.Hostname == page.Hostname {
+				found = true
+				page.Node.IP = master.IP
+				page.Node.Options = master.Options
+			}
+		}
+		if !found {
+			http.NotFound(w, r)
+			return nil
+		}
+	}
+	return tmpl.Execute(w, page)
+}
+
+func (s *Server) Static(w http.ResponseWriter, r *http.Request, u *User, p httprouter.Params) error {
+	d, f := p.ByName("dir"), p.ByName("file")
+	if d == "" || f == "" {
+		http.NotFound(w, r)
+		return nil
+	}
+	fp := fmt.Sprintf("www/static/%s/%s", d, f)
+	data, err := Asset(fp)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			http.NotFound(w, r)
+			return nil
+		}
+		return err
+	}
+	split := strings.Split(fp, ".")
+	switch split[len(split)-1] {
+	case "css":
+		w.Header().Add("Content-Type", "text/css")
+	case "js":
+		w.Header().Add("Content-Type", "application/javascript")
+	}
+	_, err = w.Write(data)
+	return err
+}
+
 func (s *Server) Serve() error {
+	s.router.GET("/", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		http.Redirect(w, r, "/clusters", 302)
+	})
+	s.router.GET("/clusters", s.Handler(s.ClusterHTML))
+	s.router.GET("/clusters/:cluster", s.Handler(s.ClusterHTML))
+	s.router.GET("/clusters/:cluster/:hostname", s.Handler(s.ClusterHTML))
+	s.router.GET("/static/:dir/:file", s.Handler(s.Static))
 	s.router.POST("/1/cluster", s.Handler(s.Cluster))
 	s.log.Info("server", zap.String("msg", "Listening @0.0.0.0:8080"))
 	return http.ListenAndServe(":8080", s.router)
