@@ -1,10 +1,11 @@
-package main
+package client
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	//"github.com/cenkalti/backoff"
+	"github.com/vektorlab/gaffer/config"
+	"github.com/vektorlab/gaffer/store"
 	"go.uber.org/zap"
 	"net/http"
 	"time"
@@ -28,7 +29,7 @@ func NewClient(endpoint, token string, logger *zap.Logger) *Client {
 	}
 }
 
-func (c Client) query(q *Query) (*Response, error) {
+func (c Client) query(q *store.Query) (*store.Response, error) {
 	raw, err := json.Marshal(q)
 	if err != nil {
 		return nil, err
@@ -47,7 +48,7 @@ func (c Client) query(q *Query) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	r := &Response{}
+	r := &store.Response{}
 	err = json.NewDecoder(resp.Body).Decode(r)
 	if err != nil {
 		return nil, err
@@ -60,8 +61,8 @@ func (c Client) query(q *Query) (*Response, error) {
 	return r, nil
 }
 
-func (c Client) Cluster(id string) (*Cluster, error) {
-	resp, err := c.query(&Query{Type: READ})
+func (c Client) Cluster(id string) (*config.Cluster, error) {
+	resp, err := c.query(&store.Query{Type: store.READ})
 	if err != nil {
 		return nil, err
 	}
@@ -73,8 +74,8 @@ func (c Client) Cluster(id string) (*Cluster, error) {
 	return nil, fmt.Errorf("%s not found", id)
 }
 
-func (c Client) Update(cluster *Cluster) error {
-	_, err := c.query(&Query{Type: UPDATE, Cluster: cluster})
+func (c Client) Update(cluster *config.Cluster) error {
+	_, err := c.query(&store.Query{Type: store.UPDATE, Cluster: cluster})
 	return err
 }
 

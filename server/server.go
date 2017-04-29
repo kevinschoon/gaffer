@@ -1,9 +1,12 @@
-package main
+package server
 
 import (
 	"encoding/json"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
+	"github.com/vektorlab/gaffer/config"
+	"github.com/vektorlab/gaffer/store"
+	"github.com/vektorlab/gaffer/user"
 	"go.uber.org/zap"
 	"html/template"
 	"net/http"
@@ -14,12 +17,12 @@ import (
 type ClusterPage struct {
 	Name     string
 	Hostname string
-	Response *Response
-	Cluster  *Cluster
+	Response *store.Response
+	Cluster  *config.Cluster
 	// TODO change to interface
 	Node struct {
 		IP      string
-		Options []*Option
+		Options []*config.Option
 	}
 }
 
@@ -28,10 +31,10 @@ func (c ClusterPage) Progress() int {
 	return ((int(c.Cluster.State()) + 1) / 6) * 100
 }
 
-type HandleFunc func(http.ResponseWriter, *http.Request, *User, httprouter.Params) error
+type HandleFunc func(http.ResponseWriter, *http.Request, *user.User, httprouter.Params) error
 
 type Server struct {
-	store     Store
+	store     store.Store
 	router    *httprouter.Router
 	log       *zap.Logger
 	Anonymous bool
@@ -41,15 +44,15 @@ func (s Server) Handler(fn HandleFunc) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		start := time.Now()
 		var (
-			u   *User
+			u   *user.User
 			err error
 		)
 		if s.Anonymous {
-			u = &User{1, ""}
+			u = &user.User{1, ""}
 		} else {
 			_, token, ok := r.BasicAuth()
 			if ok {
-				resp, err := s.store.Query(&Query{Type: READ_USER, User: &User{Token: token}})
+				resp, err := s.store.Query(&store.Query{Type: store.READ_USER, User: &user.User{Token: token}})
 				if err != nil {
 					s.log.Warn("server", zap.String("cannot authenticate user", err.Error()))
 					http.Error(w, err.Error(), 500)
@@ -80,8 +83,8 @@ func (s Server) Handler(fn HandleFunc) httprouter.Handle {
 	}
 }
 
-func (s *Server) Cluster(w http.ResponseWriter, r *http.Request, u *User, p httprouter.Params) error {
-	query := &Query{}
+func (s *Server) Cluster(w http.ResponseWriter, r *http.Request, u *user.User, p httprouter.Params) error {
+	query := &store.Query{}
 	err := json.NewDecoder(r.Body).Decode(query)
 	if err != nil {
 		return err
@@ -90,7 +93,7 @@ func (s *Server) Cluster(w http.ResponseWriter, r *http.Request, u *User, p http
 	if query.Type == "" {
 		return fmt.Errorf("must specify Type")
 	}
-	if query.Type == CREATE {
+	if query.Type == store.CREATE {
 		if query.Cluster == nil {
 			return fmt.Errorf("must specify cluster parameters")
 		}
@@ -102,7 +105,7 @@ func (s *Server) Cluster(w http.ResponseWriter, r *http.Request, u *User, p http
 	return json.NewEncoder(w).Encode(resp)
 }
 
-func (s *Server) ClusterHTML(w http.ResponseWriter, r *http.Request, u *User, p httprouter.Params) error {
+func (s *Server) ClusterHTML(w http.ResponseWriter, r *http.Request, u *user.User, p httprouter.Params) error {
 	data, err := Asset("www/index.html")
 	if err != nil {
 		return err
@@ -111,7 +114,7 @@ func (s *Server) ClusterHTML(w http.ResponseWriter, r *http.Request, u *User, p 
 	if err != nil {
 		return err
 	}
-	resp, err := s.store.Query(&Query{User: u, Type: READ})
+	resp, err := s.store.Query(&store.Query{User: u, Type: store.READ})
 	if err != nil {
 		return err
 	}
@@ -156,7 +159,7 @@ func (s *Server) ClusterHTML(w http.ResponseWriter, r *http.Request, u *User, p 
 	return tmpl.Execute(w, page)
 }
 
-func (s *Server) Static(w http.ResponseWriter, r *http.Request, u *User, p httprouter.Params) error {
+func (s *Server) Static(w http.ResponseWriter, r *http.Request, u *user.User, p httprouter.Params) error {
 	d, f := p.ByName("dir"), p.ByName("file")
 	if d == "" || f == "" {
 		http.NotFound(w, r)
@@ -195,7 +198,7 @@ func (s *Server) Serve() error {
 	return http.ListenAndServe(":8080", s.router)
 }
 
-func NewServer(store Store, logger *zap.Logger) *Server {
+func NewServer(store store.Store, logger *zap.Logger) *Server {
 	return &Server{
 		store:  store,
 		log:    logger,

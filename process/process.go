@@ -1,4 +1,4 @@
-package main
+package process
 
 import (
 	"bufio"
@@ -23,7 +23,7 @@ type Process struct {
 	cmd  *exec.Cmd
 	err  chan error
 	quit chan struct{}
-	env  map[string]string
+	Env  map[string]string
 	log  *zap.Logger
 }
 
@@ -33,7 +33,7 @@ func NewProcess(logger *zap.Logger, args ...string) *Process {
 		cmd:  exec.Command(args[0], args[1:]...),
 		err:  make(chan error),
 		quit: make(chan struct{}),
-		env:  map[string]string{},
+		Env:  map[string]string{},
 	}
 }
 
@@ -42,7 +42,7 @@ func (p *Process) Start() error {
 
 	// Append any local envs
 	p.cmd.Env = os.Environ()
-	for k, v := range p.env {
+	for k, v := range p.Env {
 		p.cmd.Env = append(p.cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
 

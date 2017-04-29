@@ -10,7 +10,7 @@ docker:
 	if [ ! -d ./bin ]; then \
 		mkdir ./bin; \
 	fi
-	$(DOCKER) go-bindata www/...
+	$(DOCKER) go-bindata -pkg server -o server/bindata.go www/...
 	$(DOCKER) go build -o ./bin/gaffer
 	docker build -t $(DOCKER_IMAGE) .
 	docker build -t $(DOCKER_IMAGE) -f docker/Dockerfile.mesos .

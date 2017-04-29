@@ -1,9 +1,11 @@
-package main
+package store
 
 import (
 	"database/sql"
 	"encoding/json"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/vektorlab/gaffer/config"
+	"github.com/vektorlab/gaffer/user"
 	"go.uber.org/zap"
 )
 
@@ -18,14 +20,14 @@ const (
 type QueryType string
 
 type Query struct {
-	Type    QueryType `json:"type"`
-	Cluster *Cluster  `json:"cluster"`
-	User    *User     `json:"user"`
+	Type    QueryType       `json:"type"`
+	Cluster *config.Cluster `json:"cluster"`
+	User    *user.User      `json:"user"`
 }
 
 type Response struct {
-	Clusters []*Cluster `json:"clusters"`
-	User     *User      `json:"user"`
+	Clusters []*config.Cluster `json:"clusters"`
+	User     *user.User        `json:"user"`
 }
 
 type Store interface {
@@ -40,7 +42,7 @@ type SQLStore struct {
 
 func (s *SQLStore) Query(q *Query) (*Response, error) {
 	response := &Response{
-		Clusters: []*Cluster{},
+		Clusters: []*config.Cluster{},
 	}
 	switch q.Type {
 	case CREATE:
@@ -83,7 +85,7 @@ func (s *SQLStore) Query(q *Query) (*Response, error) {
 			if err != nil {
 				return nil, err
 			}
-			cluster := &Cluster{}
+			cluster := &config.Cluster{}
 			err = json.Unmarshal([]byte(data), cluster)
 			if err != nil {
 				return nil, err
@@ -150,7 +152,7 @@ func (s *SQLStore) Query(q *Query) (*Response, error) {
 			if err != nil {
 				return nil, err
 			}
-			response.User = &User{id, token}
+			response.User = &user.User{id, token}
 		}
 	}
 	return response, nil
