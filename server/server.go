@@ -47,9 +47,10 @@ func HandleWrapper(s *Server, fn HandleFunc) httprouter.Handle {
 		} else {
 			id, token, ok := r.BasicAuth()
 			if ok {
-				q := &query.Query{Type: query.READ_USER}
-				q.ReadUser.User = &user.User{ID: id, Token: token}
-				resp, err := s.store.Query(q)
+				resp, err := s.store.Query(&query.Query{
+					Type: query.READ_USER,
+					User: &user.User{ID: id, Token: token},
+				})
 				if err != nil {
 					log.Log.Warn("server", zap.String("cannot authenticate user", err.Error()))
 					http.Error(w, err.Error(), 500)

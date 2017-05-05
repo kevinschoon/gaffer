@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/vektorlab/gaffer/cluster"
 	"github.com/vektorlab/gaffer/log"
 	"github.com/vektorlab/gaffer/store/query"
 	"github.com/vektorlab/gaffer/user"
@@ -61,21 +60,4 @@ func (c Client) Query(q *query.Query) (*query.Response, error) {
 		zap.Any("response", r),
 	)
 	return r, nil
-}
-
-func (c Client) Cluster(id string) (*cluster.Cluster, error) {
-	q := &query.Query{Type: query.READ}
-	q.Read.ID = id
-	resp, err := c.Query(q)
-	if err != nil {
-		return nil, err
-	}
-	return resp.Clusters[0], nil
-}
-
-func (c Client) Update(o *cluster.Cluster) error {
-	q := &query.Query{Type: query.UPDATE}
-	q.Update.Clusters = []*cluster.Cluster{o}
-	_, err := c.Query(q)
-	return err
 }

@@ -45,3 +45,11 @@ type Response struct {
 	Clusters []*cluster.Cluster `json:"clusters"`
 	User     *user.User         `json:"-"`
 }
+
+func (r Response) One() *cluster.Cluster {
+	var c *cluster.Cluster
+	if len(r.Clusters) > 0 {
+		c = r.Clusters[0]
+	}
+	return c
+}

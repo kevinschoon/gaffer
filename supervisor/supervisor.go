@@ -6,6 +6,7 @@ import (
 	"github.com/vektorlab/gaffer/client"
 	"github.com/vektorlab/gaffer/cluster"
 	"github.com/vektorlab/gaffer/log"
+	"github.com/vektorlab/gaffer/store/query"
 	"go.uber.org/zap"
 	"time"
 )
@@ -27,26 +28,49 @@ type Opts struct {
 }
 
 func Run(opts Opts) error {
-	// Main Mesos launch function
+
+	var (
+		config *cluster.Cluster
+		self   *cluster.Host
+	)
+
 	fn := func() error {
 		// Request cluster information
-		config, err := opts.Client.Cluster(opts.ClusterID)
+		resp, err := opts.Client.Query(
+			&query.Query{
+				Type: query.READ,
+				Read: &query.Read{
+					ID: opts.ClusterID,
+				},
+			},
+		)
+
 		if err != nil {
 			return err
 		}
-		var self *cluster.Host
+
+		config = resp.One()
+
+		if config == nil {
+			return fmt.Errorf("cannot find cluster")
+		}
+
 		for _, host := range config.Hosts {
-			if err := host.Register(); err != nil {
+			if err := host.Register(); err == nil {
 				self = host
+				break
 			}
 		}
+
 		if self == nil {
 			return fmt.Errorf("Could not register self with cluster")
 		}
+
 		service, ok := self.Services[opts.Service]
 		if !ok {
 			return fmt.Errorf("Invalid service %s", opts.Service)
 		}
+
 		// Check if the process is running every 2s
 		maybeLog(func() error {
 			return service.Start()
@@ -54,38 +78,17 @@ func Run(opts Opts) error {
 
 		for {
 			time.Sleep(PollTime)
-
-			if !service.Running() {
-				log.Log.Warn("supervisor", zap.String("message", fmt.Sprintf("service %s is not running", opts.Service)))
-				err := maybeLog(func() error { return service.Start() })
-				if err != nil {
-					continue
-				}
-			}
-			err := opts.Client.Update(config)
+			_, err := opts.Client.Query(&query.Query{
+				Type: query.UPDATE,
+				Update: &query.Update{
+					Clusters: []*cluster.Cluster{
+						config,
+					},
+				},
+			})
 			if err != nil {
 				log.Log.Info("supervisor", zap.String("message", "failed to update remote server"), zap.Error(err))
 			}
-
-			/*
-				// Refresh the cluster configuraiton prior to update
-				c, err = opts.Client.Cluster(opts.Cluster)
-				if err != nil {
-					// Could not refresh cluster configuration
-					opts.Logger.Error(
-						"agent",
-						zap.Error(err),
-					)
-					continue
-				}
-				// Process is still running but server unable to tell server
-				if err := opts.Client.Update(c); err != nil {
-					opts.Logger.Error(
-						"agent",
-						zap.Error(err),
-					)
-				}
-			*/
 		}
 	}
 	notify := func(err error, d time.Duration) {
