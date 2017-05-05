@@ -6,6 +6,7 @@ import (
 	"github.com/vektorlab/gaffer/cluster/service"
 	"io/ioutil"
 	"os"
+	"time"
 )
 
 // HostIDPath is the path where Gaffer stores
@@ -27,10 +28,12 @@ func (e ErrHostNotRegistered) Error() string {
 // Host is unique server with one
 // or more running processes
 type Host struct {
-	ID         string                      `json:"id"`
-	Hostname   string                      `json:"hostname"`
-	Registered bool                        `json:"registered"`
-	Services   map[string]*service.Service `json:"services"`
+	ID             string                      `json:"id"`
+	Hostname       string                      `json:"hostname"`
+	Registered     bool                        `json:"registered"`
+	LastRegistered time.Time                   `json:"last_registered"`
+	LastContacted  time.Time                   `json:"last_contacted"`
+	Services       map[string]*service.Service `json:"services"`
 }
 
 func (h Host) me() bool {
@@ -57,7 +60,13 @@ func (h *Host) Register() error {
 	}
 	h.Hostname = hostname
 	h.Registered = true
+	h.LastRegistered = time.Now()
+	h.Update()
 	return nil
+}
+
+func (h *Host) Update() {
+	h.LastContacted = time.Now()
 }
 
 func NewHost() *Host {

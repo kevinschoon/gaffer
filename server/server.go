@@ -23,9 +23,17 @@ type ClusterPage struct {
 	Cluster  *cluster.Cluster
 }
 
+func (c ClusterPage) Host() *cluster.Host {
+	for _, host := range c.Cluster.Hosts {
+		if host.Hostname == c.Hostname {
+			return host
+		}
+	}
+	return nil
+}
 func (_ ClusterPage) Upper(s string) string { return strings.ToUpper(s) }
 func (c ClusterPage) Progress() int {
-	return ((int(c.Cluster.State()) + 1) / 6) * 100
+	return int(float64(c.Cluster.State()) / float64(3) * 100)
 }
 
 type Server struct {

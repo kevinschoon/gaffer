@@ -12,15 +12,12 @@ import (
 // Service is a configurable process
 // that must remain running
 type Service struct {
-	Cmd *exec.Cmd `json:"cmd"`
+	Cmd     *exec.Cmd `json:"cmd"`
+	Running bool      `json:"running"`
 }
 
 // Start runs the command
 func (s *Service) Start() error {
-
-	if s.Running() {
-		panic("service already running")
-	}
 
 	// Stdout
 	ro, wo, err := os.Pipe()
@@ -83,10 +80,12 @@ func (s *Service) Stop() error {
 	return syscall.Kill(processGroup, syscall.SIGKILL)
 }
 
+/*
 func (s *Service) Running() bool {
 	pid := s.Pid()
 	return pid != 0 && syscall.Kill(pid, syscall.Signal(0)) == nil
 }
+*/
 
 // Pid return Process PID
 func (s *Service) Pid() int {

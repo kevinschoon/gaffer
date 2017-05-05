@@ -68,10 +68,10 @@
                             <tr>
                                 <td><a href="/clusters/{{.ID}}">{{.ID}}</a></td>
                                 <td>{{.Size}}</td>
-                                {{if eq .State.String "MASTER_READY"}}
-                                <td><span class="label label-success">{{.State}}</span></td>
+                                {{if eq .State.String "STARTED"}}
+                                <td><span class="label label-success">{{.State.String}}</span></td>
                                 {{else}}
-                                <td><span class="label">{{.State}}</span></td>
+                                <td><span class="label label-default">{{.State.String}}</span></td>
                                 {{end}}
                             </tr>
                             {{end}}
@@ -86,7 +86,7 @@
                     </div>
                   </div>
                   <div class="col-md-3">
-                    {{if eq .Cluster.State.String "MASTER_READY"}}
+                    {{if eq .Cluster.State.String "STARTED"}}
                     <div class="panel panel-success">
                     {{else}}
                     <div class="panel panel-default">
@@ -96,19 +96,9 @@
                       </div>
                       <div class="panel-body">
                         <ul class="list-group">
-                          <h4 class="page-header"> Zookeepers </h4>
-                            {{range .Cluster.Zookeepers}}
-                              {{if .Running}}
-                              <li class="list-group-item list-group-item-success"><a href="/clusters/{{$name}}/{{.Hostname}}">{{.Hostname}}</a></li>
-                              {{else}}
-                              <li class="list-group-item list-group-item-warning"><a href="/clusters/{{$name}}/{{.Hostname}}">{{.Hostname}}</a></li>
-                              {{end}}
-                            {{end}}
-                        </ul>
-                        <ul class="list-group">
-                          <h4 class="page-header"> Masters </h4>
-                            {{range .Cluster.Masters}}
-                              {{if .Running}}
+                          <h4 class="page-header"> Hosts </h4>
+                            {{range .Cluster.Hosts}}
+                              {{if .Registered}}
                               <li class="list-group-item list-group-item-success"><a href="/clusters/{{$name}}/{{.Hostname}}">{{.Hostname}}</a></li>
                               {{else}}
                               <li class="list-group-item list-group-item-warning"><a href="/clusters/{{$name}}/{{.Hostname}}">{{.Hostname}}</a></li>
@@ -124,20 +114,23 @@
                         <h3 class="panel-title">{{.Hostname}}</h3>
                       </div>
                       <div class="panel-body">
+                        <div class="row">
+                          <div class="col-md-12">
+                            <div class="well well-sm"> {{.Host}}</div>
+                          </div>
+                        </div>
                         {{if .Hostname}}
                         <table class="table table-striped">
                         <thead>
                             <tr>
-                                <th>Name</th>
-                                <th>Value</th>
-                                <th>Data</th>
+                                <th>Service</th>
+                                <th>Running</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {{range .Node.Options}}
+                            {{range .Host.Services}}
                             <tr>
-                                <td>{{.Name}}</td>
-                                <td>{{.Value}}</td>
+                                <td>{{.}}</td>
                                 <td></td>
                             </tr>
                             {{end}}

@@ -11,29 +11,22 @@ func (s State) String() string {
 	switch s {
 	case CONVERGING:
 		return "CONVERGING"
-	case CONVERGED:
-		return "CONVERGED"
 	case STARTING:
 		return "STARTING"
 	case STARTED:
 		return "STARTED"
-	case DEGRADED:
-		return "DEGRADED"
 	}
 	return ""
 }
 
 const (
+	_ State = iota
 	// Management hosts are still coming online
-	CONVERGING State = iota
-	// All management hosts have joined
-	CONVERGED
-	// One or more host proceses are still starting
+	CONVERGING
+	// One or more host services are still starting
 	STARTING
-	// All essential host processes have started
+	// All essential host services have started
 	STARTED
-	// One or more essential host process is not running
-	DEGRADED
 )
 
 // Cluster represents the overall configuration of a Mesos cluster
@@ -52,7 +45,36 @@ func New(id string, size int) *Cluster {
 	return cluster
 }
 
-func (c Cluster) State() State { return STARTED }
+func (c Cluster) State() State {
+	state := CONVERGING
+	if c.Hosts == nil {
+		// No hosts registered
+		// CONVERGING
+		return state
+	}
+	for _, host := range c.Hosts {
+		if !host.Registered {
+			// Not all hosts registered
+			// CONVERGING
+			return state
+		}
+	}
+	// All hosts registered
+	// STARTING
+	state++
+	for _, host := range c.Hosts {
+		for _, service := range host.Services {
+			if !service.Running {
+				// All services are not running yet
+				return state
+			}
+		}
+	}
+	// All services are running
+	// STARTED
+	state++
+	return state
+}
 
 // Quorum returns the optimal quorum size
 // for the cluster
