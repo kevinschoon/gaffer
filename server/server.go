@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
-	"github.com/vektorlab/gaffer/config"
+	"github.com/vektorlab/gaffer/cluster"
+	"github.com/vektorlab/gaffer/log"
 	"github.com/vektorlab/gaffer/store"
+	"github.com/vektorlab/gaffer/store/query"
 	"github.com/vektorlab/gaffer/user"
 	"go.uber.org/zap"
 	"html/template"
@@ -17,13 +19,8 @@ import (
 type ClusterPage struct {
 	Name     string
 	Hostname string
-	Response *store.Response
-	Cluster  *config.Cluster
-	// TODO change to interface
-	Node struct {
-		IP      string
-		Options []*config.Option
-	}
+	Response *query.Response
+	Cluster  *cluster.Cluster
 }
 
 func (_ ClusterPage) Upper(s string) string { return strings.ToUpper(s) }
@@ -31,30 +28,30 @@ func (c ClusterPage) Progress() int {
 	return ((int(c.Cluster.State()) + 1) / 6) * 100
 }
 
-type HandleFunc func(http.ResponseWriter, *http.Request, *user.User, httprouter.Params) error
-
 type Server struct {
 	store     store.Store
-	router    *httprouter.Router
-	log       *zap.Logger
-	Anonymous bool
+	anonymous bool
 }
 
-func (s Server) Handler(fn HandleFunc) httprouter.Handle {
+type HandleFunc func(http.ResponseWriter, *http.Request, *user.User, httprouter.Params) error
+
+func HandleWrapper(s *Server, fn HandleFunc) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		start := time.Now()
 		var (
 			u   *user.User
 			err error
 		)
-		if s.Anonymous {
-			u = &user.User{1, ""}
+		if s.anonymous {
+			u = &user.User{"root", ""}
 		} else {
-			_, token, ok := r.BasicAuth()
+			id, token, ok := r.BasicAuth()
 			if ok {
-				resp, err := s.store.Query(&store.Query{Type: store.READ_USER, User: &user.User{Token: token}})
+				q := &query.Query{Type: query.READ_USER}
+				q.ReadUser.User = &user.User{ID: id, Token: token}
+				resp, err := s.store.Query(q)
 				if err != nil {
-					s.log.Warn("server", zap.String("cannot authenticate user", err.Error()))
+					log.Log.Warn("server", zap.String("cannot authenticate user", err.Error()))
 					http.Error(w, err.Error(), 500)
 					return
 				}
@@ -64,15 +61,15 @@ func (s Server) Handler(fn HandleFunc) httprouter.Handle {
 		if u != nil {
 			err = fn(w, r, u, p)
 			if err != nil {
-				s.log.Warn("server", zap.Error(err))
+				log.Log.Warn("server", zap.Error(err))
 				http.Error(w, err.Error(), 500)
 			}
 		} else {
-			s.log.Warn("server", zap.String("error", "user unauthorized"))
+			log.Log.Warn("server", zap.String("error", "user unauthorized"))
 			w.Header().Set("WWW-Authenticate", "Basic realm=Restricted")
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 		}
-		s.log.Info(
+		log.Log.Info(
 			"server",
 			zap.Duration("duration", time.Since(start)),
 			zap.String("url", r.URL.String()),
@@ -81,24 +78,25 @@ func (s Server) Handler(fn HandleFunc) httprouter.Handle {
 			zap.String("user-agent", r.Header.Get("User-Agent")),
 		)
 	}
+
 }
 
 func (s *Server) Cluster(w http.ResponseWriter, r *http.Request, u *user.User, p httprouter.Params) error {
-	query := &store.Query{}
-	err := json.NewDecoder(r.Body).Decode(query)
+	q := &query.Query{}
+	err := json.NewDecoder(r.Body).Decode(q)
 	if err != nil {
 		return err
 	}
-	query.User = u
-	if query.Type == "" {
+	q.User = u
+	if q.Type == "" {
 		return fmt.Errorf("must specify Type")
 	}
-	if query.Type == store.CREATE {
-		if query.Cluster == nil {
+	if q.Type == query.CREATE {
+		if q.Create.Clusters == nil {
 			return fmt.Errorf("must specify cluster parameters")
 		}
 	}
-	resp, err := s.store.Query(query)
+	resp, err := s.store.Query(q)
 	if err != nil {
 		return err
 	}
@@ -114,7 +112,7 @@ func (s *Server) ClusterHTML(w http.ResponseWriter, r *http.Request, u *user.Use
 	if err != nil {
 		return err
 	}
-	resp, err := s.store.Query(&store.Query{User: u, Type: store.READ})
+	resp, err := s.store.Query(&query.Query{User: u, Type: query.READ})
 	if err != nil {
 		return err
 	}
@@ -135,27 +133,29 @@ func (s *Server) ClusterHTML(w http.ResponseWriter, r *http.Request, u *user.Use
 		page.Name = "clusters"
 	}
 	// TODO: Need a unique identifier, not hostname
-	if page.Hostname != "" {
-		var found bool
-		for _, zk := range page.Cluster.Zookeepers {
-			if zk.Hostname == page.Hostname {
-				found = true
-				page.Node.IP = zk.IP
-				page.Node.Options = zk.Options
+	/*
+		if page.Hostname != "" {
+			var found bool
+			for _, zk := range page.Cluster.Zookeepers {
+				if zk.Hostname == page.Hostname {
+					found = true
+					page.Node.IP = zk.IP
+					page.Node.Options = zk.Options
+				}
+			}
+			for _, master := range page.Cluster.Masters {
+				if master.Hostname == page.Hostname {
+					found = true
+					page.Node.IP = master.IP
+					page.Node.Options = master.Options
+				}
+			}
+			if !found {
+				http.NotFound(w, r)
+				return nil
 			}
 		}
-		for _, master := range page.Cluster.Masters {
-			if master.Hostname == page.Hostname {
-				found = true
-				page.Node.IP = master.IP
-				page.Node.Options = master.Options
-			}
-		}
-		if !found {
-			http.NotFound(w, r)
-			return nil
-		}
-	}
+	*/
 	return tmpl.Execute(w, page)
 }
 
@@ -185,23 +185,20 @@ func (s *Server) Static(w http.ResponseWriter, r *http.Request, u *user.User, p 
 	return err
 }
 
-func (s *Server) Serve() error {
-	s.router.GET("/", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func Run(server *Server, pattern string) error {
+	router := httprouter.New()
+	router.GET("/", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		http.Redirect(w, r, "/clusters", 302)
 	})
-	s.router.GET("/clusters", s.Handler(s.ClusterHTML))
-	s.router.GET("/clusters/:cluster", s.Handler(s.ClusterHTML))
-	s.router.GET("/clusters/:cluster/:hostname", s.Handler(s.ClusterHTML))
-	s.router.GET("/static/:dir/:file", s.Handler(s.Static))
-	s.router.POST("/1/cluster", s.Handler(s.Cluster))
-	s.log.Info("server", zap.String("msg", "Listening @0.0.0.0:8080"))
-	return http.ListenAndServe(":8080", s.router)
+	router.GET("/clusters", HandleWrapper(server, server.ClusterHTML))
+	router.GET("/clusters/:cluster", HandleWrapper(server, server.ClusterHTML))
+	router.GET("/clusters/:cluster/:hostname", HandleWrapper(server, server.ClusterHTML))
+	router.GET("/static/:dir/:file", HandleWrapper(server, server.Static))
+	router.POST("/1/cluster", HandleWrapper(server, server.Cluster))
+	log.Log.Info("server", zap.String("msg", fmt.Sprintf("Listening @%s", pattern)))
+	return http.ListenAndServe(pattern, router)
 }
 
-func NewServer(store store.Store, logger *zap.Logger) *Server {
-	return &Server{
-		store:  store,
-		log:    logger,
-		router: httprouter.New(),
-	}
+func New(store store.Store, anon bool) *Server {
+	return &Server{store, anon}
 }

@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/vektorlab/gaffer/config"
-	"github.com/vektorlab/gaffer/store"
+	"github.com/vektorlab/gaffer/cluster"
+	"github.com/vektorlab/gaffer/log"
+	"github.com/vektorlab/gaffer/store/query"
+	"github.com/vektorlab/gaffer/user"
 	"go.uber.org/zap"
 	"net/http"
 	"time"
@@ -15,21 +17,19 @@ const PollInterval time.Duration = 10 * time.Second
 
 type Client struct {
 	endpoint string
-	token    string
+	user     *user.User
 	client   *http.Client
-	log      *zap.Logger
 }
 
-func NewClient(endpoint, token string, logger *zap.Logger) *Client {
+func New(endpoint string, u *user.User) *Client {
 	return &Client{
 		endpoint: endpoint,
-		token:    token,
-		log:      logger,
+		user:     u,
 		client:   http.DefaultClient,
 	}
 }
 
-func (c Client) query(q *store.Query) (*store.Response, error) {
+func (c Client) Query(q *query.Query) (*query.Response, error) {
 	raw, err := json.Marshal(q)
 	if err != nil {
 		return nil, err
@@ -38,8 +38,10 @@ func (c Client) query(q *store.Query) (*store.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.SetBasicAuth("", c.token)
-	c.log.Info(
+	if c.user != nil {
+		req.SetBasicAuth(c.user.ID, c.user.Token)
+	}
+	log.Log.Info(
 		"client",
 		zap.String("url", req.URL.String()),
 		zap.Any("query", q),
@@ -48,12 +50,12 @@ func (c Client) query(q *store.Query) (*store.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	r := &store.Response{}
+	r := &query.Response{}
 	err = json.NewDecoder(resp.Body).Decode(r)
 	if err != nil {
 		return nil, err
 	}
-	c.log.Info(
+	log.Log.Info(
 		"client",
 		zap.Int("status", resp.StatusCode),
 		zap.Any("response", r),
@@ -61,54 +63,19 @@ func (c Client) query(q *store.Query) (*store.Response, error) {
 	return r, nil
 }
 
-func (c Client) Cluster(id string) (*config.Cluster, error) {
-	resp, err := c.query(&store.Query{Type: store.READ})
+func (c Client) Cluster(id string) (*cluster.Cluster, error) {
+	q := &query.Query{Type: query.READ}
+	q.Read.ID = id
+	resp, err := c.Query(q)
 	if err != nil {
 		return nil, err
 	}
-	for _, cluster := range resp.Clusters {
-		if cluster.ID == id {
-			return cluster, nil
-		}
-	}
-	return nil, fmt.Errorf("%s not found", id)
+	return resp.Clusters[0], nil
 }
 
-func (c Client) Update(cluster *config.Cluster) error {
-	_, err := c.query(&store.Query{Type: store.UPDATE, Cluster: cluster})
+func (c Client) Update(o *cluster.Cluster) error {
+	q := &query.Query{Type: query.UPDATE}
+	q.Update.Clusters = []*cluster.Cluster{o}
+	_, err := c.Query(q)
 	return err
 }
-
-/*
-// UntilZKReady waits until a Zookeeper quorum is formed
-func (c Client) UntilZKReady(cluster *Cluster) error {
-	return backoff.Retry(func() error {
-		rc, err := c.Cluster(cluster.ID)
-		if err != nil {
-			c.log.Warn("client", zap.String("error", err.Error()))
-			return err
-		}
-		if !rc.ZKReady() {
-			return fmt.Errorf("zookeepers still converging")
-		}
-		c.log.Info("client", zap.String("msg", "Zookeepers converged!"))
-		return nil
-	}, backoff.NewExponentialBackOff())
-}
-
-// UntilMasterReady waits until a Mesos Master quorum is formed
-func (c Client) UntilMasterReady(cluster *Cluster) error {
-	return backoff.Retry(func() error {
-		rc, err := c.Cluster(cluster.ID)
-		if err != nil {
-			c.log.Warn("client", zap.String("error", err.Error()))
-			return err
-		}
-		if !rc.MesosReady() {
-			return fmt.Errorf("mesos still converging")
-		}
-		c.log.Info("client", zap.String("msg", "Mesos Masters converged!"))
-		return nil
-	}, backoff.NewExponentialBackOff())
-}
-*/
