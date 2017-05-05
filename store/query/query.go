@@ -9,7 +9,7 @@ type Type string
 
 const (
 	CREATE    Type = "CREATE"
-	UPDATE    Type = "WRITE"
+	UPDATE    Type = "UPDATE"
 	READ      Type = "READ"
 	DELETE    Type = "DELETE"
 	READ_USER Type = "READ_USER"
