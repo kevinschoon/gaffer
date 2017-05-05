@@ -22,6 +22,7 @@ func Run() {
 		debug = app.BoolOpt("d debug", false, "output debug information")
 	)
 	app.Command("server", "Run the scheduler HTTP server", serverCMD(debug))
+	app.Command("query", "Perform HTTP queries", queryCMD())
 	app.Command("template", "Generate a configuration template", templateCMD())
 	app.Command("supervise", "Supervise a cluster process", superviseCMD())
 	maybe(app.Run(os.Args))
