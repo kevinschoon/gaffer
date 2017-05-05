@@ -18,23 +18,29 @@ const (
 // Query is used to request an action against a store
 type Query struct {
 	Type   Type       `json:"type"`
-	User   *user.User `json:"user"`
-	Create struct {
-		Clusters []*cluster.Cluster
-	} `json:"create"`
-	Read struct {
-		ID string `json:"id"`
-	} `json:"read"`
-	ReadUser struct {
-		User *user.User `json:"user"`
-	} `json:"read_user"`
-	Update struct {
-		Clusters []*cluster.Cluster
-	} `json:"write"`
-	Delete struct {
-		ID string `json:"id"`
-	} `json:"delete"`
+	User   *user.User `json:"-"`
+	Create *Create    `json:"create"`
+	Read   *Read      `json:"read"`
+	Update *Update    `json:"update"`
+	Delete *Delete    `json:"delete"`
 }
+
+type Create struct {
+	Clusters []*cluster.Cluster `json:"clusters"`
+}
+
+type Read struct {
+	ID string `json"id"`
+}
+
+type Update struct {
+	Clusters []*cluster.Cluster `json:"clusters"`
+}
+
+type Delete struct {
+	ID string `json:"id"`
+}
+
 type Response struct {
 	Clusters []*cluster.Cluster `json:"clusters"`
 	User     *user.User         `json:"-"`

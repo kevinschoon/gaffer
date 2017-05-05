@@ -91,7 +91,7 @@ func (s *SQLStore) read(q *query.Query) (*query.Response, error) {
 
 func (s *SQLStore) readUser(q *query.Query) (*query.Response, error) {
 	var usr *user.User
-	rows, err := s.db.Query("SELECT id, token FROM users WHERE id == ? AND token == ? LIMIT 1", q.ReadUser.User.ID, q.ReadUser.User.Token)
+	rows, err := s.db.Query("SELECT id, token FROM users WHERE id == ? AND token == ? LIMIT 1", q.User.ID, q.User.Token)
 	if err != nil {
 		return nil, err
 	}
