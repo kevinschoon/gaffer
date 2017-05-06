@@ -50,7 +50,7 @@ func (c ClusterPage) Cluster() *cluster.Cluster {
 }
 
 func (c ClusterPage) Recent(d time.Duration) bool {
-	return d < 1*time.Minute
+	return d < 20*time.Second
 }
 
 func (_ ClusterPage) Upper(s string) string { return strings.ToUpper(s) }
