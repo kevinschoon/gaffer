@@ -30,6 +30,9 @@ type Service struct {
 	Files       []*File     `json:"files"`
 }
 
+//TODO
+//func (s *Service) Flapping() bool {}
+
 func (s *Service) init() error {
 
 	tmp, err := ioutil.TempDir(TempPath, "gaffer")

@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"math"
+	"time"
 )
 
 // State represents the state of a given cluster
@@ -15,6 +16,8 @@ func (s State) String() string {
 		return "STARTING"
 	case STARTED:
 		return "STARTED"
+	case DEGRADED:
+		return "DEGRADED"
 	}
 	return ""
 }
@@ -27,6 +30,8 @@ const (
 	STARTING
 	// All essential host services have started
 	STARTED
+	// One or more services have not reported back
+	DEGRADED
 )
 
 // Cluster represents the overall configuration of a Mesos cluster
@@ -73,6 +78,13 @@ func (c Cluster) State() State {
 	// All services are running
 	// STARTED
 	state++
+	for _, host := range c.Hosts {
+		if time.Since(host.LastContacted) > 1*time.Minute {
+			// DEGRADED
+			state++
+			break
+		}
+	}
 	return state
 }
 

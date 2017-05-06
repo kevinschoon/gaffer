@@ -70,10 +70,18 @@
                             <tr>
                                 <td><a href="/clusters/{{.ID}}">{{.ID}}</a></td>
                                 <td>{{.Size}}</td>
+                                {{.State.String}}
+                                {{if eq .State.String "CONVERGING"}}
+                                <td><span class="label label-default">{{.State.String}}</span></td>
+                                {{end}}
+                                {{if eq .State.String "STARTING"}}
+                                <td><span class="label label-default">{{.State.String}}</span></td>
+                                {{end}}
                                 {{if eq .State.String "STARTED"}}
                                 <td><span class="label label-success">{{.State.String}}</span></td>
-                                {{else}}
-                                <td><span class="label label-default">{{.State.String}}</span></td>
+                                {{end}}
+                                {{if eq .State.String "DEGRADED"}}
+                                <td><span class="label label-danger">{{.State.String}}</span></td>
                                 {{end}}
                             </tr>
                             {{end}}
@@ -84,9 +92,15 @@
                 <div class="row">
                 <h2 class="page-header">{{$CLUSTER}}</h2> 
                   <div class="progress">
+                    {{if eq .Cluster.State.String "DEGRADED"}}
+                    <div class="progress-bar progress-bar-danger" role="progressbar" aria-valuenow="{{.Progress}}" aria-valuemin="0" aria-valuemax="100" style="width: {{.Progress}}%;">
+                      {{.Cluster.State.String}}
+                      </div>
+                      {{else}}
                     <div class="progress-bar" role="progressbar" aria-valuenow="{{.Progress}}" aria-valuemin="0" aria-valuemax="100" style="width: {{.Progress}}%;">
                       {{.Cluster.State.String}}
-                    </div>
+                      </div>
+                    {{end}}  
                   </div>
                   <div class="col-md-3">
                     <div class="panel panel-default">
@@ -139,7 +153,7 @@
                             {{range $key, $value := .Host.Services}}
                             <tr>
                               <td><a href="/clusters/{{$CLUSTER}}/{{$HOSTNAME}}/{{$key}}">{{$key}}</a></td>
-                                <td>{{$value.Process.Pid}}</td>
+                              <td>{{if $value.Process}}{{$value.Process.Pid}}{{end}}</td>
                                 <td>{{$value.History| len}}</td>
                                 <td>
                                 </td>

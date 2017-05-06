@@ -69,7 +69,11 @@ func (c ClusterPage) ServicesRunning() int {
 }
 
 func (c ClusterPage) Progress() int {
-	return int(float64(c.Cluster().State()) / float64(3) * 100)
+	progress := int(float64(c.Cluster().State()) / float64(3) * 100)
+	if progress > 100 {
+		return 100
+	}
+	return progress
 }
 
 type Server struct {
