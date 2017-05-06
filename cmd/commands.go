@@ -25,5 +25,6 @@ func Run() {
 	app.Command("query", "Perform HTTP queries", queryCMD())
 	app.Command("template", "Generate a configuration template", templateCMD())
 	app.Command("supervise", "Supervise a cluster process", superviseCMD())
+	app.Command("init", "Initialize the cluster database", initCMD())
 	maybe(app.Run(os.Args))
 }
