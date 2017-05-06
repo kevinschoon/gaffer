@@ -14,6 +14,6 @@ func (e Env) String() string { return fmt.Sprintf("%s=%s", e.Name, e.Value) }
 
 type File struct {
 	Path    string      `json:"path"`
-	Content []byte      `json:"content"`
+	Content []string    `json:"content"`
 	Mode    os.FileMode `json:"mode"`
 }

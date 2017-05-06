@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -55,7 +56,7 @@ func (s *Service) init() error {
 		if file.Mode == 0 {
 			file.Mode = os.FileMode(0644)
 		}
-		err = ioutil.WriteFile(file.Path, file.Content, file.Mode)
+		err = ioutil.WriteFile(file.Path, []byte(strings.Join(file.Content, "\n")), file.Mode)
 		if err != nil {
 			return err
 		}
