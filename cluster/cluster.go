@@ -64,7 +64,7 @@ func (c Cluster) State() State {
 	state++
 	for _, host := range c.Hosts {
 		for _, service := range host.Services {
-			if !service.Running {
+			if service.Process == nil {
 				// All services are not running yet
 				return state
 			}

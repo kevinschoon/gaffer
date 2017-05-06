@@ -69,6 +69,13 @@ func (h *Host) Update() {
 	h.LastContacted = time.Now()
 }
 
+func (h Host) TimeSinceRegistration() time.Duration {
+	return time.Since(h.LastRegistered)
+}
+func (h Host) TimeSinceLastContacted() time.Duration {
+	return time.Since(h.LastContacted)
+}
+
 func NewHost() *Host {
 	return &Host{ID: uuid.NewV4().String()}
 }

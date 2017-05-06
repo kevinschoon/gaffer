@@ -1,4 +1,6 @@
-{{ $name := .Name }}
+{{ $CLUSTER := .ClusterName}}
+{{ $HOSTNAME := .Hostname}}
+{{ $SERVICE := .ServiceName}}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -37,14 +39,14 @@
         <div class="row">
             <div class="col-sm-3 col-md-2 sidebar">
                 <ul class="nav nav-sidebar">
-                    {{if eq $name "clusters"}}
+                    {{if eq $CLUSTER ""}}
                     <li class="active"><a href="#">Clusters </a></li>
                     {{else}}
                     <li><a href="/clusters">Clusters </a></li>
                     {{end}}
                     <hr> 
                     {{range .Response.Clusters}} 
-                    {{if eq $name .ID}}
+                    {{if eq $CLUSTER .ID}}
                     <li class="active"><a href="/clusters/{{.ID}}">{{.ID}}</a></li>
                     {{else}}
                     <li><a href="/clusters/{{.ID}}">{{.ID}}</a></li>
@@ -52,8 +54,8 @@
                     {{end}}
             </div>
             <div class="col-md-offset-2 main">
-              <h2 class="page-header">{{.Upper $name}}</h2> 
-              {{if eq $name "clusters"}}
+              {{if eq $CLUSTER ""}}
+              <h2 class="page-header">Clusters</h2> 
                 <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>
@@ -80,66 +82,96 @@
                 </div>
                 {{else}}
                 <div class="row">
+                <h2 class="page-header">{{$CLUSTER}}</h2> 
                   <div class="progress">
                     <div class="progress-bar" role="progressbar" aria-valuenow="{{.Progress}}" aria-valuemin="0" aria-valuemax="100" style="width: {{.Progress}}%;">
                       {{.Cluster.State.String}}
                     </div>
                   </div>
                   <div class="col-md-3">
-                    {{if eq .Cluster.State.String "STARTED"}}
-                    <div class="panel panel-success">
-                    {{else}}
                     <div class="panel panel-default">
-                    {{end}}
                       <div class="panel-heading">
-                        <h3 class="panel-title">{{.Cluster.State}}</h3>
+                        <h3 class="panel-title">Hosts</h3>
                       </div>
                       <div class="panel-body">
                         <ul class="list-group">
-                          <h4 class="page-header"> Hosts </h4>
                             {{range .Cluster.Hosts}}
-                              {{if .Registered}}
-                              <li class="list-group-item list-group-item-success"><a href="/clusters/{{$name}}/{{.Hostname}}">{{.Hostname}}</a></li>
+                            {{if .Registered}}
+                              <li class="list-group-item list-group-item-primary">
+                                <a href="/clusters/{{$CLUSTER}}/{{.Hostname}}">{{.Hostname}}</a>
+                              | <span class="label label-success">registered</span>
+                              </li>
                               {{else}}
-                              <li class="list-group-item list-group-item-warning"><a href="/clusters/{{$name}}/{{.Hostname}}">{{.Hostname}}</a></li>
+                              <li class="list-group-item list-group-item-warning"><a href="/clusters/{{$CLUSTER}}/{{$HOSTNAME}}">{{$HOSTNAME}}</a></li>
                               {{end}}
                             {{end}}
                         </ul>
                       </div>
                     </div>
                   </div>
+                  {{if $HOSTNAME}}
                   <div class="col-md-9">
                     <div class="panel panel-default">
                       <div class="panel-heading">
-                        <h3 class="panel-title">{{.Hostname}}</h3>
+                        <h3> {{.Hostname}} - ({{.Host.ID}})</h3>
                       </div>
                       <div class="panel-body">
                         <div class="row">
                           <div class="col-md-12">
-                            <div class="well well-sm"> {{.Host}}</div>
+                              <span class="label label-primary">Registered: {{.Host.TimeSinceRegistration}}</span>
+                              {{if .Host.TimeSinceLastContacted | .Recent}}
+                              <span class="label label-success">Last Contacted: {{.Host.TimeSinceLastContacted}}</span>
+                              {{else}}
+                              <span class="label label-danger">Last Contacted: {{.Host.TimeSinceLastContacted}}</span>
+                              {{end}}
                           </div>
                         </div>
-                        {{if .Hostname}}
                         <table class="table table-striped">
                         <thead>
                             <tr>
                                 <th>Service</th>
-                                <th>Running</th>
+                                <th>Process</th>
+                                <th>Events</th>
+                                <th>State</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {{range .Host.Services}}
+                            {{range $key, $value := .Host.Services}}
                             <tr>
-                                <td>{{.}}</td>
-                                <td></td>
+                              <td><a href="/clusters/{{$CLUSTER}}/{{$HOSTNAME}}/{{$key}}">{{$key}}</a></td>
+                                <td>{{$value.Process.Pid}}</td>
+                                <td>{{$value.History| len}}</td>
+                                <td>
+                                </td>
                             </tr>
                             {{end}}
                         </tbody>
                     </table>
-                        {{end}}
                       </div>
                     </div>
                   </div>
+                  {{end}}
+                  {{if .Service}}
+                  <div class="col-md-12">
+
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Message</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{range .Service.History}}
+                            <tr>
+                                <td>{{.Date}}</td>
+                                <td>{{.Message}}</td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                  </div>
+                  {{end}}
                 </div>
                 {{end}}
             </div>

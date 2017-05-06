@@ -31,7 +31,7 @@ func Run(opts Opts) error {
 
 	var (
 		config *cluster.Cluster
-		self   *cluster.Host
+		host   *cluster.Host
 	)
 
 	fn := func() error {
@@ -55,49 +55,75 @@ func Run(opts Opts) error {
 			return fmt.Errorf("cannot find cluster")
 		}
 
-		for _, host := range config.Hosts {
-			if err := host.Register(); err == nil {
-				self = host
+		for _, h := range config.Hosts {
+			if err := h.Register(); err == nil {
+				host = h
 				break
 			}
 		}
 
-		if self == nil {
+		if host == nil {
 			return fmt.Errorf("Could not register self with cluster")
 		}
 
-		service, ok := self.Services[opts.Service]
+		service, ok := host.Services[opts.Service]
 		if !ok {
 			return fmt.Errorf("Invalid service %s", opts.Service)
 		}
 
-		// Check if the process is running every 2s
-		maybeLog(func() error {
-			return service.Start()
-		})
+		run := func() error {
 
-		for {
-			time.Sleep(PollTime)
-			_, err := opts.Client.Query(&query.Query{
-				Type: query.UPDATE,
-				Update: &query.Update{
-					Clusters: []*cluster.Cluster{
-						config,
-					},
-				},
+			maybeLog(func() error {
+				return service.Start()
 			})
-			if err != nil {
-				log.Log.Info("supervisor", zap.String("message", "failed to update remote server"), zap.Error(err))
+
+			for {
+				service.Update()
+				host.Update()
+				_, err := opts.Client.Query(&query.Query{
+					Type: query.UPDATE,
+					Update: &query.Update{
+						Clusters: []*cluster.Cluster{
+							config,
+						},
+					},
+				})
+				if err != nil {
+					log.Log.Info("supervisor", zap.String("message", "failed to update remote server"), zap.Error(err))
+				}
+				if !service.Running() {
+					return fmt.Errorf(service.Cmd.ProcessState.String())
+				}
+				time.Sleep(PollTime)
 			}
+
 		}
-	}
-	notify := func(err error, d time.Duration) {
-		log.Log.Info(
-			"supervisor",
-			zap.String("message", fmt.Sprintf("service %s has failed", opts.Service)),
-			zap.Duration("duration", d),
-			zap.Error(err),
+		exp := backoff.NewExponentialBackOff()
+		exp.MaxElapsedTime = 30000 * time.Millisecond
+		return backoff.RetryNotify(
+			run,
+			exp,
+			func(err error, d time.Duration) {
+				log.Log.Info(
+					"supervisor",
+					zap.String("message", fmt.Sprintf("service %s has failed", opts.Service)),
+					zap.Duration("duration", d),
+					zap.Error(err),
+				)
+			},
 		)
 	}
-	return backoff.RetryNotify(fn, backoff.NewExponentialBackOff(), notify)
+
+	return backoff.RetryNotify(
+		fn,
+		backoff.NewConstantBackOff(5000*time.Millisecond),
+		func(err error, d time.Duration) {
+			log.Log.Info(
+				"supervisor",
+				zap.String("message", "supervisor process timed out"),
+				zap.Duration("duration", d),
+				zap.Error(err),
+			)
+		},
+	)
 }

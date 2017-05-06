@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"github.com/vektorlab/gaffer/cluster"
+	"github.com/vektorlab/gaffer/cluster/service"
 	"github.com/vektorlab/gaffer/log"
 	"github.com/vektorlab/gaffer/store"
 	"github.com/vektorlab/gaffer/store/query"
@@ -17,23 +18,58 @@ import (
 )
 
 type ClusterPage struct {
-	Name     string
-	Hostname string
-	Response *query.Response
-	Cluster  *cluster.Cluster
+	ClusterName string
+	Hostname    string
+	ServiceName string
+	Response    *query.Response
+}
+
+func (c ClusterPage) Service() *service.Service {
+	if host := c.Host(); host != nil {
+		return host.Services[c.ServiceName]
+	}
+	return &service.Service{}
 }
 
 func (c ClusterPage) Host() *cluster.Host {
-	for _, host := range c.Cluster.Hosts {
+	for _, host := range c.Cluster().Hosts {
 		if host.Hostname == c.Hostname {
 			return host
 		}
 	}
-	return nil
+	return &cluster.Host{}
 }
+
+func (c ClusterPage) Cluster() *cluster.Cluster {
+	for _, cluster := range c.Response.Clusters {
+		if cluster.ID == c.ClusterName {
+			return cluster
+		}
+	}
+	return &cluster.Cluster{}
+}
+
+func (c ClusterPage) Recent(d time.Duration) bool {
+	return d < 1*time.Minute
+}
+
 func (_ ClusterPage) Upper(s string) string { return strings.ToUpper(s) }
+
+func (c ClusterPage) ServicesRunning() int {
+	if host := c.Host(); host != nil {
+		var running int
+		for _, service := range host.Services {
+			if service.Process != nil {
+				running++
+			}
+		}
+		return (running / len(host.Services)) * 100
+	}
+	return 0
+}
+
 func (c ClusterPage) Progress() int {
-	return int(float64(c.Cluster.State()) / float64(3) * 100)
+	return int(float64(c.Cluster().State()) / float64(3) * 100)
 }
 
 type Server struct {
@@ -126,45 +162,10 @@ func (s *Server) ClusterHTML(w http.ResponseWriter, r *http.Request, u *user.Use
 		return err
 	}
 	page := &ClusterPage{Response: resp}
-	page.Name = p.ByName("cluster")
+	page.ClusterName = p.ByName("cluster")
 	page.Hostname = p.ByName("hostname")
-	if page.Name != "" {
-		for _, cluster := range resp.Clusters {
-			if cluster.ID == page.Name {
-				page.Cluster = cluster
-			}
-		}
-		if page.Cluster == nil {
-			http.NotFound(w, r)
-			return nil
-		}
-	} else {
-		page.Name = "clusters"
-	}
-	// TODO: Need a unique identifier, not hostname
-	/*
-		if page.Hostname != "" {
-			var found bool
-			for _, zk := range page.Cluster.Zookeepers {
-				if zk.Hostname == page.Hostname {
-					found = true
-					page.Node.IP = zk.IP
-					page.Node.Options = zk.Options
-				}
-			}
-			for _, master := range page.Cluster.Masters {
-				if master.Hostname == page.Hostname {
-					found = true
-					page.Node.IP = master.IP
-					page.Node.Options = master.Options
-				}
-			}
-			if !found {
-				http.NotFound(w, r)
-				return nil
-			}
-		}
-	*/
+	page.ServiceName = p.ByName("service")
+
 	return tmpl.Execute(w, page)
 }
 
@@ -202,6 +203,7 @@ func Run(server *Server, pattern string) error {
 	router.GET("/clusters", HandleWrapper(server, server.ClusterHTML))
 	router.GET("/clusters/:cluster", HandleWrapper(server, server.ClusterHTML))
 	router.GET("/clusters/:cluster/:hostname", HandleWrapper(server, server.ClusterHTML))
+	router.GET("/clusters/:cluster/:hostname/:service", HandleWrapper(server, server.ClusterHTML))
 	router.GET("/static/:dir/:file", HandleWrapper(server, server.Static))
 	router.POST("/1/cluster", HandleWrapper(server, server.Cluster))
 	log.Log.Info("server", zap.String("msg", fmt.Sprintf("Listening @%s", pattern)))

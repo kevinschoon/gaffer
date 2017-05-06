@@ -6,7 +6,6 @@ import (
 	"github.com/vektorlab/gaffer/client"
 	"github.com/vektorlab/gaffer/supervisor"
 	"github.com/vektorlab/gaffer/user"
-	"strings"
 )
 
 func superviseCMD() func(*cli.Cmd) {
@@ -18,13 +17,11 @@ func superviseCMD() func(*cli.Cmd) {
 			auth      = cmd.StringOpt("u user", "", "user:pass basic auth string")
 		)
 		cmd.Action = func() {
-			var u *user.User
+			var usr *user.User
 			if *auth != "" {
-				split := strings.Split(*auth, ":")
-				if len(split) != 2 {
-					maybe(fmt.Errorf("bad auth %s", *auth))
-				}
-				u = &user.User{split[0], split[1]}
+				u, err := user.FromString(*auth)
+				maybe(err)
+				usr = u
 			}
 			if *clusterID == "" {
 				maybe(fmt.Errorf("must specify cluster ID"))
@@ -34,7 +31,7 @@ func superviseCMD() func(*cli.Cmd) {
 			}
 			supervisor.Run(
 				supervisor.Opts{
-					Client:    client.New(*endpoint, u),
+					Client:    client.New(*endpoint, usr),
 					ClusterID: *clusterID,
 					Service:   *service,
 				},
