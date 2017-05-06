@@ -3,7 +3,6 @@ package cluster
 import (
 	"fmt"
 	"github.com/satori/go.uuid"
-	"github.com/vektorlab/gaffer/cluster/service"
 	"io/ioutil"
 	"os"
 	"time"
@@ -28,12 +27,11 @@ func (e ErrHostNotRegistered) Error() string {
 // Host is unique server with one
 // or more running processes
 type Host struct {
-	ID             string                      `json:"id"`
-	Hostname       string                      `json:"hostname"`
-	Registered     bool                        `json:"registered"`
-	LastRegistered time.Time                   `json:"last_registered"`
-	LastContacted  time.Time                   `json:"last_contacted"`
-	Services       map[string]*service.Service `json:"services"`
+	ID             string    `json:"id"`
+	Hostname       string    `json:"hostname"`
+	Registered     bool      `json:"registered"`
+	LastRegistered time.Time `json:"last_registered"`
+	LastContacted  time.Time `json:"last_contacted"`
 }
 
 func (h Host) me() bool {

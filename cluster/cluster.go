@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"github.com/vektorlab/gaffer/cluster/service"
 	"math"
 	"time"
 )
@@ -36,9 +37,10 @@ const (
 
 // Cluster represents the overall configuration of a Mesos cluster
 type Cluster struct {
-	ID    string  `json:"id"`
-	Size  int     `json:"size"`
-	Hosts []*Host `json:"hosts"`
+	ID       string                      `json:"id"`
+	Size     int                         `json:"size"`
+	Hosts    []*Host                     `json:"hosts"`
+	Services map[string]*service.Service `json:"services"`
 }
 
 func New(id string, size int) *Cluster {
@@ -67,19 +69,18 @@ func (c Cluster) State() State {
 	// All hosts registered
 	// STARTING
 	state++
-	for _, host := range c.Hosts {
-		for _, service := range host.Services {
-			if service.Process == nil {
-				// All services are not running yet
-				return state
-			}
+	for _, service := range c.Services {
+		// Process is not registered
+		if service.Process == nil {
+			return state
 		}
 	}
 	// All services are running
 	// STARTED
 	state++
 	for _, host := range c.Hosts {
-		if time.Since(host.LastContacted) > 1*time.Minute {
+		// Host has not been contacted recently
+		if host.TimeSinceLastContacted() > 1*time.Minute {
 			// DEGRADED
 			state++
 			break
@@ -91,5 +92,5 @@ func (c Cluster) State() State {
 // Quorum returns the optimal quorum size
 // for the cluster
 func (c Cluster) Quorum() int {
-	return int(math.Floor(float64(c.Size) + .5))
+	return int(math.Floor(float64(len(c.Hosts)) + .5))
 }
