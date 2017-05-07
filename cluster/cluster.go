@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"github.com/vektorlab/gaffer/cluster/host"
 	"github.com/vektorlab/gaffer/cluster/service"
 	"math"
 	"time"
@@ -37,17 +38,20 @@ const (
 
 // Cluster represents the overall configuration of a Mesos cluster
 type Cluster struct {
-	ID       string                      `json:"id"`
-	Size     int                         `json:"size"`
-	Hosts    []*Host                     `json:"hosts"`
-	Services map[string]*service.Service `json:"services"`
+	ID       string                        `json:"id"`
+	Hosts    []*host.Host                  `json:"hosts"`
+	Services map[string][]*service.Service `json:"services"`
 }
 
 func New(id string, size int) *Cluster {
 	cluster := &Cluster{
-		ID:    id,
-		Size:  size,
-		Hosts: []*Host{},
+		ID:       id,
+		Hosts:    []*host.Host{},
+		Services: map[string][]*service.Service{},
+	}
+	for i := 0; i < size; i++ {
+		cluster.Hosts = append(cluster.Hosts, host.NewHost())
+		cluster.Services[cluster.Hosts[i].ID] = []*service.Service{}
 	}
 	return cluster
 }
@@ -69,10 +73,12 @@ func (c Cluster) State() State {
 	// All hosts registered
 	// STARTING
 	state++
-	for _, service := range c.Services {
-		// Process is not registered
-		if service.Process == nil {
-			return state
+	for _, services := range c.Services {
+		for _, service := range services {
+			// Process is not registered
+			if service.Process == nil {
+				return state
+			}
 		}
 	}
 	// All services are running

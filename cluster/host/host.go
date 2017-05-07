@@ -1,4 +1,4 @@
-package cluster
+package host
 
 import (
 	"fmt"
@@ -17,11 +17,11 @@ const HostIDPath string = "/tmp/gaffer.id"
 // ErrHostNotRegistered indicates this host is
 // not registered with the host ID
 type ErrHostNotRegistered struct {
-	id string
+	ID string
 }
 
 func (e ErrHostNotRegistered) Error() string {
-	return fmt.Sprintf("Host not registered (%s)", e.id)
+	return fmt.Sprintf("Host not registered (%s)", e.ID)
 }
 
 // Host is unique server with one

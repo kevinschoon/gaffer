@@ -23,6 +23,7 @@ type State struct {
 // Service is a configurable process
 // that must remain running
 type Service struct {
+	ID          string      `json:"id"`
 	Args        []string    `json:"args"`
 	Cmd         *exec.Cmd   `json:"-"`
 	Process     *os.Process `json:"process"`

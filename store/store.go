@@ -1,21 +1,21 @@
 package store
 
 import (
-	"fmt"
 	"github.com/vektorlab/gaffer/store/query"
+	"github.com/vektorlab/gaffer/store/sql"
 )
-
-type ErrUserNotFound struct {
-	id string
-}
-
-func (e ErrUserNotFound) Error() string {
-	return fmt.Sprintf("User %s not found", e.id)
-}
 
 type Store interface {
 	Query(*query.Query) (*query.Response, error)
 	Close() error
 }
 
-var _ Store = &SQLStore{}
+var _ Store = &sql.SQLStore{}
+
+func NewSQLStore(name, connect string, init bool) (Store, error) {
+	store, err := sql.New(name, connect, init)
+	if err != nil {
+		return nil, err
+	}
+	return store, nil
+}

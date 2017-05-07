@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"github.com/stretchr/testify/assert"
+	"github.com/vektorlab/gaffer/cluster/host"
 	"github.com/vektorlab/gaffer/cluster/service"
 	"os"
 	"testing"
@@ -11,72 +12,90 @@ import (
 var (
 	converging = &Cluster{
 		ID: "test-cluster",
-		Hosts: []*Host{
-			&Host{ID: "host-1"},
-			&Host{ID: "host-2"},
-			&Host{ID: "host-3"},
+		Hosts: []*host.Host{
+			&host.Host{ID: "host-1"},
+			&host.Host{ID: "host-2"},
+			&host.Host{ID: "host-3"},
 		},
 	}
 	starting = &Cluster{
 		ID: "test-cluster",
-		Hosts: []*Host{
-			&Host{ID: "host-1", Registered: true},
-			&Host{ID: "host-2", Registered: true},
-			&Host{ID: "host-3", Registered: true},
+		Hosts: []*host.Host{
+			&host.Host{ID: "host-1", Registered: true},
+			&host.Host{ID: "host-2", Registered: true},
+			&host.Host{ID: "host-3", Registered: true},
 		},
-		Services: map[string]*service.Service{
-			"host-1": &service.Service{Process: &os.Process{Pid: 1234}},
-			"host-2": &service.Service{Process: &os.Process{Pid: 1234}},
-			"host-3": &service.Service{},
+		Services: map[string][]*service.Service{
+			"host-1": []*service.Service{
+				&service.Service{Process: &os.Process{Pid: 1234}},
+			},
+			"host-2": []*service.Service{
+				&service.Service{Process: &os.Process{Pid: 1234}},
+			},
+			"host-3": []*service.Service{
+				&service.Service{},
+			},
 		},
 	}
 	started = &Cluster{
 		ID: "test-cluster",
-		Hosts: []*Host{
-			&Host{
+		Hosts: []*host.Host{
+			&host.Host{
 				ID:            "host-1",
 				Registered:    true,
 				LastContacted: time.Now(),
 			},
-			&Host{
+			&host.Host{
 				ID:            "host-2",
 				Registered:    true,
 				LastContacted: time.Now(),
 			},
-			&Host{
+			&host.Host{
 				ID:            "host-3",
 				Registered:    true,
 				LastContacted: time.Now(),
 			},
 		},
-		Services: map[string]*service.Service{
-			"host-1": &service.Service{Process: &os.Process{Pid: 1234}},
-			"host-2": &service.Service{Process: &os.Process{Pid: 1234}},
-			"host-3": &service.Service{Process: &os.Process{Pid: 1234}},
+		Services: map[string][]*service.Service{
+			"host-1": []*service.Service{
+				&service.Service{Process: &os.Process{Pid: 1234}},
+			},
+			"host-2": []*service.Service{
+				&service.Service{Process: &os.Process{Pid: 1234}},
+			},
+			"host-3": []*service.Service{
+				&service.Service{Process: &os.Process{Pid: 1234}},
+			},
 		},
 	}
 	degradedHost = &Cluster{
 		ID: "test-cluster",
-		Hosts: []*Host{
-			&Host{
+		Hosts: []*host.Host{
+			&host.Host{
 				ID:         "host-1",
 				Registered: true,
 			},
-			&Host{
+			&host.Host{
 				ID:            "host-2",
 				Registered:    true,
 				LastContacted: time.Now(),
 			},
-			&Host{
+			&host.Host{
 				ID:            "host-3",
 				Registered:    true,
 				LastContacted: time.Now(),
 			},
 		},
-		Services: map[string]*service.Service{
-			"host-1": &service.Service{Process: &os.Process{Pid: 1234}},
-			"host-2": &service.Service{Process: &os.Process{Pid: 1234}},
-			"host-3": &service.Service{Process: &os.Process{Pid: 1234}},
+		Services: map[string][]*service.Service{
+			"host-1": []*service.Service{
+				&service.Service{Process: &os.Process{Pid: 1234}},
+			},
+			"host-2": []*service.Service{
+				&service.Service{Process: &os.Process{Pid: 1234}},
+			},
+			"host-3": []*service.Service{
+				&service.Service{Process: &os.Process{Pid: 1234}},
+			},
 		},
 	}
 )
