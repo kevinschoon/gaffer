@@ -83,6 +83,11 @@ body {
     background-color: #428bca;
 }
 
+li.list-group-item.active.sub {
+background-color: #fff;
+border: 3px solid #ddd
+}
+
 
 /*
  * Main content

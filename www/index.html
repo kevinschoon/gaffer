@@ -1,6 +1,7 @@
 {{ $CLUSTER := .Cluster}}
 {{ $HOST_ID := .HostID }}
 {{ $SERVICE_ID := .ServiceID }}
+{{ $HOST_DETAILS := .HostDetails }}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -40,15 +41,24 @@
         <div class="row">
             <div class="col-sm-3 col-md-2 sidebar">
                 <ul class="nav nav-sidebar">
-                  <center><h3><a href="/gaffer">{{$CLUSTER}}</a></h3></center>
+                  <center><h3><a href="/gaffer">{{ $CLUSTER }}</a></h3></center>
                     <hr> 
-                    {{range .Hosts}}
-                      {{if eq $HOST_ID .ID}}
-                      <li class="active"><a href="/gaffer/{{.ID}}">{{.ID}}</a></li>
-                      {{else}}
-                      <li><a href="/gaffer/{{.ID}}">{{.ID}}</a></li>
-                      {{end}}
-                    {{end}}
+                    {{ range $host := .Hosts }}
+                      {{ if eq $HOST_ID $host.ID }}
+                      <li class="active"><a href="/gaffer/{{ $host.ID }}">{{ $host.ID }}</a></li>
+                        <ul class="list-group">
+                        {{ range $service := $HOST_DETAILS.Services }}
+                          {{ if eq $SERVICE_ID $service.ID }}
+                          <li class="list-group-item active sub"><a href="/gaffer/{{ $host.ID }}/{{ $service.ID }}">{{ $service.ID }}</a></li>
+                          {{ else }}
+                          <li class="list-group-item"><a href="/gaffer/{{ $host.ID }}/{{ $service.ID }}">{{ $service.ID }}</a></li>
+                          {{ end }}
+                        {{ end }}
+                        </ul>
+                      {{ else }}
+                      <li><a href="/gaffer/{{ $host.ID }}">{{ $host.ID }}</a></li>
+                      {{ end }}
+                    {{ end }}
                 </ul>
             </div>
             <!--main section-->
@@ -56,66 +66,104 @@
             {{if .HostDetails}}
             <h2 class="page-header">{{$HOST_ID}}</h2> 
             {{else}}
-            <h2 class="page-header">...</h2> 
-            {{end}}
+            <h2 class="page-header">Overview</h2> 
+
               <div class="row"> 
                 <!-- overview -->
-                {{if .HostDetails}}
-                {{else}}
+                {{ if .HostDetails }}
+                {{ else }}
                 <div class="progress">
-                    {{if eq .State.String "DEGRADED"}}
+                    {{ if eq .State.String "DEGRADED" }}
                     <div class="progress-bar progress-bar-danger" role="progressbar" aria-valuenow="{{.Progress}}" aria-valuemin="0" aria-valuemax="100" style="width: {{.Progress}}%;">
-                      {{.State.String}}
+                      {{ .State.String }}
                       </div>
-                      {{else}}
+                      {{ else }}
                     <div class="progress-bar" role="progressbar" aria-valuenow="{{.Progress}}" aria-valuemin="0" aria-valuemax="100" style="width: {{.Progress}}%;">
-                      {{.State.String}}
+                      {{ .State.String }}
                       </div>
-                    {{end}}  
+                    {{ end }}  
                   </div>
-                  {{end}}
+                  {{ end }}
+
+            {{end}}
+
                 <!-- end overview -->
 
                 <!-- host details -->
-                {{if .HostDetails}}
-                <div class="col-md-12">
+                {{ if .HostDetails }}
+                <div class="col-md-3">
                   <div class="panel panel-default">
                       <div class="panel-heading">
-                        <h3 class="panel-title">{{$HOST_ID}}</h3>
+                        <h3 class="panel-title">STATUS</h3>
                       </div>
                       <div class="panel-body">
-                        {{.HostDetails.Host}}
+                        <canvas id="hostServices" max-width="150" height="200"></canvas>
+                        <hr>
+                        <ul class="list-group">
+                          <li class="list-group-item">
+                            {{ if .HostDetails.Host.Registered }}
+                            Registration: <span class="label label-success">registered</span>
+                            {{ else }}
+                            Registration: <span class="label label-default">pending</span>
+                            {{ end }}
+                          </li>
+                          <li class="list-group-item">
+                          {{ if .Recent .HostDetails.Host.LastContacted }}
+                            Last Contacted: <span class="label label-success">{{ .HostDetails.Host.TimeSinceLastContacted }}</span>
+                          {{ else }}
+                            Last Contacted: <span class="label label-danger">{{.HostDetails.Host.TimeSinceLastContacted}}</span>
+                          </li>
+                          <li class="list-group-item">
+                            Hostname : {{.HostDetails.Host.Hostname}}
+                          </li>
+                          <li class="list-group-item">
+                          </li>
+                        </ul>
+                        {{ end }}
                       </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="panel panel-default">
-                      <div class="panel-heading">
-                        <h3 class="panel-title">SERVICES</h3>
-                      </div>
-                      <div class="panel-body">
-                        <ul class="list-group">
-                            {{range .HostDetails.Services}}
-                              <li class="list-group-item list-group-item-primary">
-                                <a href="/gaffer/{{$HOST_ID}}/{{.ID}}">{{.ID}}</a>
-                                | {{if .Process}} <span class="label label-success">RUNNING</span> {{ end}}
-                              </li>
-                            {{end}}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                {{end}}
+                {{ end }}
                 <!-- end host details -->
                 <!-- service details -->
-                {{if .ServiceDetails}}
+                {{ if .ServiceDetails }}
                 <div class="col-md-9">
                   <div class="panel panel-default">
                       <div class="panel-heading">
-                        <h3 class="panel-title">{{.ServiceDetails.Service.ID}}</h3>
+                        <h3 class="panel-title">{{ .ServiceDetails.Service.ID }}</h3>
                       </div>
                       <div class="panel-body">
-                        {{.ServiceDetails.Service}}
+                        <h4> args </h4>
+                        <div class="well well-sm">
+                        <code>{{.ServiceDetails.Args}}</code>
+                        </div>
+                        <hr>
+                        <div class="col-md-6">
+                          <h4> environment variables </h4>
+                          <hr>
+                          <ul class="list-group">
+                            {{ range .ServiceDetails.Service.Environment }}
+                            <li class="list-group-item">
+                              <code>{{.Name}}={{.Value}}</code>
+                            </li>
+                            {{ end }}
+                          </ul>
+                        </div>
+                        <div class="col-md-6">
+                          <h4> files </h4>
+                          <hr>
+                          <ul class="list-group">
+                            {{ range .ServiceDetails.Service.Files }}
+                            <li class="list-group-item">
+                              {{ .Path }}
+                              <br>
+                              <code>
+                              {{ .Content }}
+                              </code>
+                            </li>
+                            {{ end }}
+                          </ul>
+                        </div>
                       </div>
                     </div>
                 </div>
@@ -141,6 +189,34 @@
     <!-- Placed at the end of the document so the pages load faster -->
     <script src="/static/js/jquery.min.js"></script>
     <script src="/static/js/bootstrap.min.js"></script>
+    <script src="/static/js/chart.bundle.min.js"></script>
+    <script>
+      // For a pie chart
+      var data = {
+          labels: [
+              "Running",
+              "Faulted"
+          ],
+          datasets: [
+              {
+                data: [{{.ServicesRunning}}, {{.ServicesFaulted}}],
+                  backgroundColor: [
+                      "#27ba4d",
+                      "#d9534f"
+                  ],
+                  hoverBackgroundColor: [
+                      "#27ba4d",
+                      "#d9534f"
+                  ]
+              }]
+      };
+      var ctx = document.getElementById("hostServices");
+      var myPieChart = new Chart(ctx,{
+          type: 'pie',
+          data: data,
+          options: {animation: false}
+      });
+    </script>
 </body>
 
 </html>

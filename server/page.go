@@ -21,6 +21,24 @@ type Page struct {
 	ServiceDetails *ServiceDetails
 }
 
+func (p Page) ServicesRunning() int {
+	var running int
+	if p.HostDetails != nil {
+		for _, svc := range p.HostDetails.Services {
+			if svc.Process != nil {
+				running++
+			}
+		}
+	}
+	return running
+}
+func (p Page) ServicesFaulted() int {
+	if p.HostDetails != nil {
+		return len(p.HostDetails.Services) - p.ServicesRunning()
+	}
+	return 0
+}
+
 func (p Page) Progress() int {
 	progress := int(float64(p.State) / float64(3) * 100)
 	if progress > 100 {
@@ -43,8 +61,8 @@ func (p Page) ServiceID() string {
 	return ""
 }
 
-func (_ Page) Recent(d time.Duration) bool {
-	return d < 20*time.Second
+func (_ Page) Recent(d time.Time) bool {
+	return time.Since(d) < 20*time.Second
 }
 
 type HostDetails struct {
@@ -54,6 +72,13 @@ type HostDetails struct {
 
 type ServiceDetails struct {
 	Service *service.Service
+}
+
+func (s ServiceDetails) Args() string {
+	if s.Service != nil {
+		return strings.Join(s.Service.Args, " ")
+	}
+	return ""
 }
 
 func (s *Server) Overview(w http.ResponseWriter, r *http.Request, p httprouter.Params) error {
