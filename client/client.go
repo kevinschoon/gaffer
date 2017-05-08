@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/vektorlab/gaffer/cluster"
+	"github.com/vektorlab/gaffer/cluster/host"
+	"github.com/vektorlab/gaffer/cluster/service"
 	"github.com/vektorlab/gaffer/log"
 	"github.com/vektorlab/gaffer/store/query"
 	"github.com/vektorlab/gaffer/user"
@@ -13,6 +16,12 @@ import (
 )
 
 const PollInterval time.Duration = 10 * time.Second
+
+type ErrClient struct {
+	msg string
+}
+
+func (e ErrClient) Error() string { return fmt.Sprintf("client error: %s", e.msg) }
 
 type Client struct {
 	endpoint string
@@ -33,7 +42,7 @@ func (c Client) Query(q *query.Query) (*query.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/1/cluster", c.endpoint), bytes.NewBuffer(raw))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/1/query", c.endpoint), bytes.NewBuffer(raw))
 	if err != nil {
 		return nil, err
 	}
@@ -60,4 +69,51 @@ func (c Client) Query(q *query.Query) (*query.Response, error) {
 		zap.Any("response", r),
 	)
 	return r, nil
+}
+
+func (c Client) Register(svcID string) (*host.Host, *service.Service, error) {
+	var (
+		config *cluster.Cluster
+		svc    *service.Service
+		self   *host.Host
+	)
+	resp, err := c.Query(&query.Query{Read: &query.Read{}})
+	if err != nil {
+		return nil, nil, err
+	}
+	config = resp.Read.Cluster
+	for _, h := range config.Hosts {
+		if err := h.Register(); err == nil {
+			self = h
+			break
+		}
+	}
+	if self == nil {
+		return nil, nil, ErrClient{"could not register with gaffer API"}
+	}
+	self.Update()
+	resp, err = c.Query(&query.Query{Update: &query.Update{Host: self}})
+	if err != nil {
+		return nil, nil, err
+	}
+	services, ok := config.Services[self.ID]
+	if !ok {
+		return nil, nil, ErrClient{"no services configured for this host"}
+	}
+	for _, s := range services {
+		if s.ID == svcID {
+			svc = s
+		}
+	}
+	if svc == nil {
+		return nil, nil, ErrClient{fmt.Sprintf("could not register service %s", svcID)}
+	}
+	return self, svc, nil
+}
+
+func (c Client) Update(h *host.Host, svc *service.Service) error {
+	h.Update()
+	svc.Update()
+	_, err := c.Query(&query.Query{Update: &query.Update{h, svc}})
+	return err
 }

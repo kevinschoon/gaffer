@@ -17,17 +17,9 @@ func templateCMD() func(*cli.Cmd) {
 		)
 		cmd.Action = func() {
 			tmpl := cluster.New(*name, *size)
-			for i := 0; i < *size; i++ {
-				tmpl.Hosts = append(tmpl.Hosts, cluster.NewHost())
-			}
 			if *asQuery {
 				q := query.Query{
-					Type: query.CREATE,
-					Create: &query.Create{
-						Clusters: []*cluster.Cluster{
-							tmpl,
-						},
-					},
+					Create: &query.Create{tmpl},
 				}
 				raw, err := json.Marshal(q)
 				maybe(err)

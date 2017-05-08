@@ -41,47 +41,15 @@ func queryCMD() func(*cli.Cmd) {
 					maybe(json.Unmarshal(raw, config))
 				}
 				resp, err := c.Query(&query.Query{
-					Type:   query.CREATE,
-					Create: &query.Create{Clusters: []*cluster.Cluster{config}},
+					Create: &query.Create{config},
 				})
 				maybe(err)
 				maybe(json.NewEncoder(os.Stdout).Encode(resp))
 			}
 		})
 		cmd.Command("read", "read cluster configuration", func(cmd *cli.Cmd) {
-			var clusterID = cmd.StringOpt("i id", "", "cluster id")
 			cmd.Action = func() {
-				resp, err := c.Query(&query.Query{Type: query.READ, Read: &query.Read{ID: *clusterID}})
-				maybe(err)
-				maybe(json.NewEncoder(os.Stdout).Encode(resp))
-			}
-		})
-		cmd.Command("update", "update an existing cluster", func(cmd *cli.Cmd) {
-			var path = cmd.StringArg("PATH", "", "path to the cluster configuration file, use \"-\" to read from stdin")
-			cmd.Action = func() {
-				var config *cluster.Cluster
-				if *path == "-" {
-					config = &cluster.Cluster{}
-					maybe(json.NewDecoder(os.Stdin).Decode(config))
-				} else {
-					raw, err := ioutil.ReadFile(*path)
-					maybe(err)
-					config = &cluster.Cluster{}
-					maybe(json.Unmarshal(raw, config))
-				}
-				resp, err := c.Query(&query.Query{
-					Type:   query.UPDATE,
-					Update: &query.Update{Clusters: []*cluster.Cluster{config}},
-				})
-				maybe(err)
-				maybe(json.NewEncoder(os.Stdout).Encode(resp))
-			}
-		})
-		cmd.Command("delete", "delete a cluster", func(cmd *cli.Cmd) {
-			var clusterID = cmd.StringOpt("i id", "", "cluster id")
-			cmd.Spec = "--id"
-			cmd.Action = func() {
-				resp, err := c.Query(&query.Query{Type: query.DELETE, Delete: &query.Delete{ID: *clusterID}})
+				resp, err := c.Query(&query.Query{Read: &query.Read{}})
 				maybe(err)
 				maybe(json.NewEncoder(os.Stdout).Encode(resp))
 			}
