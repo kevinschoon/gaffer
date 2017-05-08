@@ -151,33 +151,33 @@ func (s *SQLStore) read(q *query.Query) (*query.Response, error) {
 }
 
 func (s *SQLStore) update(q *query.Query) (*query.Response, error) {
-	resp := &query.Response{}
-	switch {
-	case q.UpdateHost != nil:
-		raw, err := json.Marshal(q.UpdateHost.Host)
+	resp := &query.Response{Update: &query.UpdateResponse{}}
+	if q.Update.Host != nil {
+		raw, err := json.Marshal(q.Update.Host)
 		if err != nil {
 			return nil, err
 		}
-		_, err = s.db.Exec("UPDATE hosts SET data = ? WHERE id = ?", raw, q.UpdateHost.Host.ID)
+		_, err = s.db.Exec("UPDATE hosts SET data = ? WHERE id = ?", raw, q.Update.Host.ID)
 		if err != nil {
 			return nil, err
 		}
-		resp.UpdateHost = &query.UpdateHostResponse{q.UpdateHost.Host}
-	case q.UpdateService != nil:
-		raw, err := json.Marshal(q.UpdateService.Service)
+		resp.Update.Host = q.Update.Host
+	}
+	if q.Update.Service != nil {
+		raw, err := json.Marshal(q.Update.Service)
 		if err != nil {
 			return nil, err
 		}
 		_, err = s.db.Exec(
 			"UPDATE services SET data = ? WHERE id = ? AND host_id = ?",
 			raw,
-			q.UpdateService.Service.ID,
-			q.UpdateService.HostID,
+			q.Update.Service.ID,
+			q.Update.Host.ID,
 		)
 		if err != nil {
 			return nil, err
 		}
-		resp.UpdateService = &query.UpdateServiceResponse{q.UpdateService.Service}
+		resp.Update.Service = q.Update.Service
 	}
 	return resp, nil
 }
@@ -212,7 +212,7 @@ func (s *SQLStore) Query(q *query.Query) (*query.Response, error) {
 		return s.create(q)
 	case q.Read != nil:
 		return s.read(q)
-	case q.UpdateHost != nil || q.UpdateService != nil:
+	case q.Update != nil:
 		return s.update(q)
 	case q.Delete != nil:
 		return s.delete(q)

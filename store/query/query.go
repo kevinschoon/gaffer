@@ -15,19 +15,17 @@ func (e ErrInvalidQuery) Error() string { return fmt.Sprintf("Invalid query: %s"
 
 // Query is used to request an action against a store
 type Query struct {
-	Create        *Create        `json:"create"`
-	Read          *Read          `json:"read"`
-	UpdateHost    *UpdateHost    `json:"update_host"`
-	UpdateService *UpdateService `json:"update_service"`
-	Delete        *Delete        `json:"delete"`
+	Create *Create `json:"create"`
+	Read   *Read   `json:"read"`
+	Update *Update `json:"update"`
+	Delete *Delete `json:"delete"`
 }
 
 type Response struct {
-	Create        *CreateResponse        `json:"create"`
-	Read          *ReadResponse          `json:"read"`
-	UpdateHost    *UpdateHostResponse    `json:"update_host"`
-	UpdateService *UpdateServiceResponse `json:"update_service"`
-	Delete        *DeleteResponse        `json:"delete"`
+	Create *CreateResponse `json:"create"`
+	Read   *ReadResponse   `json:"read"`
+	Update *UpdateResponse `json:"update"`
+	Delete *DeleteResponse `json:"delete"`
 }
 
 type Create struct {
@@ -44,19 +42,13 @@ type ReadResponse struct {
 	Cluster *cluster.Cluster `json:"cluster"`
 }
 
-type UpdateHost struct {
-	Host *host.Host `json:"host"`
-}
-
-type UpdateHostResponse struct {
-	Host *host.Host `json:"host"`
-}
-
-type UpdateService struct {
-	HostID  string           `json:"host_id"`
+type Update struct {
+	Host    *host.Host       `json:"host"`
 	Service *service.Service `json:"service"`
 }
-type UpdateServiceResponse struct {
+
+type UpdateResponse struct {
+	Host    *host.Host       `json:"host"`
 	Service *service.Service `json:"service"`
 }
 
@@ -81,17 +73,19 @@ func Validate(query *Query) error {
 	if query.Read != nil {
 		reqs++
 	}
-	if query.UpdateHost != nil {
-		reqs++
-	}
-	if query.UpdateService != nil {
+	if query.Update != nil {
+		if query.Update.Service != nil {
+			if query.Update.Host == nil {
+				return ErrInvalidQuery{"must specify host with service"}
+			}
+		}
 		reqs++
 	}
 	if query.Delete != nil {
 		reqs++
 	}
 	if reqs != 1 {
-		return ErrInvalidQuery{"must specify at least one request"}
+		return ErrInvalidQuery{"must specify one change per request"}
 	}
 	return nil
 }

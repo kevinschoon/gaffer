@@ -67,13 +67,13 @@ func TestQuery(t *testing.T) {
 	host := resp.Read.Cluster.Hosts[0]
 	svc := resp.Read.Cluster.Services[host.ID][0]
 	host.Registered = true
-	resp, err = db.Query(&query.Query{UpdateHost: &query.UpdateHost{host}})
+	resp, err = db.Query(&query.Query{Update: &query.Update{Host: host}})
 	assert.NoError(t, err)
-	assert.True(t, resp.UpdateHost.Host.Registered)
+	assert.True(t, resp.Update.Host.Registered)
 	svc.Environment = []*service.Env{&service.Env{"fuu", "bar"}}
-	resp, err = db.Query(&query.Query{UpdateService: &query.UpdateService{HostID: host.ID, Service: svc}})
+	resp, err = db.Query(&query.Query{Update: &query.Update{Host: host, Service: svc}})
 	assert.NoError(t, err)
-	assert.Equal(t, resp.UpdateService.Service.Environment[0].Name, "fuu")
+	assert.Equal(t, resp.Update.Service.Environment[0].Name, "fuu")
 	_, err = db.Query(&query.Query{Delete: &query.Delete{HostID: host.ID, ServiceID: svc.ID}})
 	assert.NoError(t, err)
 	_, err = db.Query(&query.Query{Delete: &query.Delete{HostID: host.ID}})
@@ -100,7 +100,7 @@ func maybeRegister(t *testing.T, db *SQLStore) {
 		host.Hostname = "some-host"
 		host.LastContacted = time.Now()
 		host.LastRegistered = time.Now()
-		_, err := db.Query(&query.Query{UpdateHost: &query.UpdateHost{Host: host}})
+		_, err := db.Query(&query.Query{Update: &query.Update{Host: host}})
 		assert.NoError(t, err)
 	}
 }
