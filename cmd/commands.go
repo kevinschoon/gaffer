@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/jawher/mow.cli"
+	"github.com/vektorlab/gaffer/log"
 	"github.com/vektorlab/gaffer/version"
 	"os"
 )
@@ -21,6 +22,11 @@ func Run() {
 	var (
 		debug = app.BoolOpt("d debug", false, "output debug information")
 	)
+	app.Before = func() {
+		if *debug {
+			log.Debug()
+		}
+	}
 	app.Command("server", "Run the scheduler HTTP server", serverCMD(debug))
 	app.Command("query", "Perform HTTP queries", queryCMD())
 	app.Command("template", "Generate a configuration template", templateCMD())

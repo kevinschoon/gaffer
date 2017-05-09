@@ -127,7 +127,7 @@ func (s *Service) Start() error {
 	}
 
 	log.Log.Info(
-		"process",
+		s.ID,
 		zap.String("process", s.Cmd.Path),
 		zap.Strings("args", s.Cmd.Args),
 	)

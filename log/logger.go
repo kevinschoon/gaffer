@@ -6,6 +6,10 @@ import (
 
 var Log *zap.Logger
 
-func init() {
+func Debug() {
 	Log, _ = zap.NewDevelopment()
+}
+
+func init() {
+	Log, _ = zap.NewProduction()
 }

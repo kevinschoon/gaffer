@@ -64,7 +64,7 @@ func Run(opts Opts) error {
 			exp,
 			func(err error, d time.Duration) {
 				log.Log.Info(
-					"supervisor",
+					opts.Service,
 					zap.String("message", fmt.Sprintf("service %s has failed", opts.Service)),
 					zap.Duration("duration", d),
 					zap.Error(err),
@@ -79,7 +79,7 @@ func Run(opts Opts) error {
 		backoff.NewConstantBackOff(5000*time.Millisecond),
 		func(err error, d time.Duration) {
 			log.Log.Info(
-				"supervisor",
+				opts.Service,
 				zap.String("message", "supervisor process timed out"),
 				zap.Duration("duration", d),
 				zap.Error(err),

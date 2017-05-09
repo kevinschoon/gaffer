@@ -49,7 +49,7 @@ func (c Client) Query(q *query.Query) (*query.Response, error) {
 	if c.user != nil {
 		req.SetBasicAuth(c.user.ID, c.user.Token)
 	}
-	log.Log.Info(
+	log.Log.Debug(
 		"client",
 		zap.String("url", req.URL.String()),
 		zap.Any("query", q),
@@ -63,7 +63,7 @@ func (c Client) Query(q *query.Query) (*query.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Log.Info(
+	log.Log.Debug(
 		"client",
 		zap.Int("status", resp.StatusCode),
 		zap.Any("response", r),
