@@ -22,13 +22,18 @@ type State struct {
 // Service is a configurable process
 // that must remain running
 type Service struct {
-	ID          string      `json:"id"`
-	Args        []string    `json:"args"`
-	Cmd         *exec.Cmd   `json:"-"`
-	Process     *os.Process `json:"process"`
-	History     []*State    `json:"history"`
-	Environment []*Env      `json:"environment"`
-	Files       []*File     `json:"files"`
+	ID            string      `json:"id"`
+	Args          []string    `json:"args"`
+	Cmd           *exec.Cmd   `json:"-"`
+	Process       *os.Process `json:"process"`
+	History       []*State    `json:"history"`
+	Environment   []*Env      `json:"environment"`
+	Files         []*File     `json:"files"`
+	LastContacted time.Time   `json:"last_contacted"`
+}
+
+func (s Service) TimeSinceLastContacted() time.Duration {
+	return time.Since(s.LastContacted)
 }
 
 //TODO
@@ -63,6 +68,7 @@ func (s *Service) init() error {
 }
 
 func (s *Service) Update() {
+	s.LastContacted = time.Now()
 	if s.Running() {
 		s.Process = s.Cmd.Process
 	} else {

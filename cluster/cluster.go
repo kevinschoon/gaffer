@@ -92,6 +92,18 @@ func (c Cluster) State() State {
 			break
 		}
 	}
+
+	for _, services := range c.Services {
+		for _, service := range services {
+			if service.TimeSinceLastContacted() > 1*time.Minute || service.LastContacted.IsZero() {
+				state++
+				break
+			}
+		}
+	}
+	if state > DEGRADED {
+		return DEGRADED
+	}
 	return state
 }
 
