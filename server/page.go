@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"github.com/vektorlab/gaffer/cluster"
@@ -13,117 +14,132 @@ import (
 	"time"
 )
 
-type Page struct {
-	Cluster        string
-	State          cluster.State
-	Hosts          []*host.Host
-	HostDetails    *HostDetails
-	ServiceDetails *ServiceDetails
+type Data struct {
+	Labels   []string  `json:"labels"`
+	Datasets []Dataset `json:"datasets"`
 }
 
-func (p Page) ServicesRunning() int {
-	var running int
-	if p.HostDetails != nil {
-		for _, svc := range p.HostDetails.Services {
-			if svc.Process != nil {
-				running++
+type Dataset struct {
+	Data                 []int    `json:"data"`
+	BackgroundColor      []string `json:"backgroundColor"`
+	HoverBackgroundColor []string `json:"hoverBackgroundColor"`
+}
+
+func helpers(c *cluster.Cluster, p httprouter.Params) template.FuncMap {
+	return template.FuncMap{
+		"title": func() string { return c.ID },
+		"param": func(key string) string { return p.ByName(key) },
+		"state": func() string { return c.State().String() },
+		"progress": func() int {
+			progress := int(float64(c.State()) / float64(3) * 100)
+			if progress > 100 {
+				return 100
 			}
-		}
+			return progress
+		},
+		"data": func() template.JS {
+			var (
+				running  int
+				degraded int
+			)
+			if services, ok := c.Services[p.ByName("host")]; ok {
+				for _, service := range services {
+					if service.TimeSinceLastContacted() < 20*time.Second {
+						running++
+					} else {
+						degraded++
+					}
+				}
+			}
+			data := &Data{
+				Labels: []string{"Running", "Faulted"},
+				Datasets: []Dataset{
+					Dataset{
+						Data:                 []int{running, degraded},
+						BackgroundColor:      []string{"#27ba4d", "#d9534f"},
+						HoverBackgroundColor: []string{"#27ba4d", "#d9534f"},
+					},
+				},
+			}
+			raw, err := json.Marshal(data)
+			if err != nil {
+				return template.JS("")
+			}
+			return template.JS(raw)
+		},
+		"degraded": func(i interface{}) bool {
+			switch t := i.(type) {
+			case *host.Host:
+				if services, ok := c.Services[t.ID]; ok {
+					for _, service := range services {
+						if service.TimeSinceLastContacted() > 20*time.Second {
+							return true
+						}
+					}
+				}
+				return t.TimeSinceLastContacted() > 20*time.Second
+			case *service.Service:
+				return t.TimeSinceLastContacted() > 20*time.Second
+			}
+			return true
+		},
+		"host": func() *host.Host {
+			for _, host := range c.Hosts {
+				if host.ID == p.ByName("host") {
+					return host
+				}
+			}
+			return nil
+		},
+		"hosts": func() []*host.Host { return c.Hosts },
+		"service": func() *service.Service {
+			for _, host := range c.Hosts {
+				if p.ByName("host") == host.ID {
+					for _, service := range c.Services[host.ID] {
+						if service.ID == p.ByName("service") {
+							return service
+						}
+					}
+				}
+			}
+			return nil
+		},
+		"services": func() map[string][]*service.Service { return c.Services },
 	}
-	return running
-}
-func (p Page) ServicesFaulted() int {
-	if p.HostDetails != nil {
-		return len(p.HostDetails.Services) - p.ServicesRunning()
-	}
-	return 0
 }
 
-func (p Page) Progress() int {
-	progress := int(float64(p.State) / float64(3) * 100)
-	if progress > 100 {
-		return 100
-	}
-	return progress
-}
-
-func (p Page) HostID() string {
-	if p.HostDetails != nil {
-		return p.HostDetails.Host.ID
-	}
-	return ""
-}
-
-func (p Page) ServiceID() string {
-	if p.ServiceDetails != nil {
-		return p.ServiceDetails.Service.ID
-	}
-	return ""
-}
-
-func (_ Page) Recent(d time.Time) bool {
-	return time.Since(d) < 20*time.Second
-}
-
-type HostDetails struct {
-	Host     *host.Host
-	Services []*service.Service
-}
-
-type ServiceDetails struct {
-	Service *service.Service
-}
-
-func (s ServiceDetails) Args() string {
-	if s.Service != nil {
-		return strings.Join(s.Service.Args, " ")
-	}
-	return ""
-}
-
-func (s *Server) Overview(w http.ResponseWriter, r *http.Request, p httprouter.Params) error {
-	data, err := Asset("www/index.html")
-	if err != nil {
-		return err
-	}
-	tmpl, err := template.New("index").Parse(string(data))
-	if err != nil {
-		return err
-	}
+func (s *Server) HTML(w http.ResponseWriter, r *http.Request, p httprouter.Params) error {
 	resp, err := s.store.Query(&query.Query{Read: &query.Read{}})
 	if err != nil {
 		return err
 	}
-	cluster := resp.Read.Cluster
-	page := &Page{
-		Cluster: cluster.ID,
-		State:   cluster.State(),
-		Hosts:   cluster.Hosts,
-	}
-	hostID := p.ByName("host")
-	if hostID != "" {
-		page.HostDetails = &HostDetails{}
-		for _, host := range cluster.Hosts {
-			if host.ID == hostID {
-				page.HostDetails.Host = host
+	var tmpl *template.Template
+	for _, name := range []string{
+		"www/index.html",
+		"www/overview.html",
+		"www/host.html",
+		"www/service.html",
+	} {
+		raw, err := Asset(name)
+		if err != nil {
+			return err
+		}
+		if tmpl == nil {
+			tmpl, err = template.New(name).Funcs(helpers(resp.Read.Cluster, p)).Parse(string(raw))
+			if err != nil {
+				return err
 			}
-			if services, ok := cluster.Services[host.ID]; ok {
-				page.HostDetails.Services = services
+		} else {
+			tmpl, err = template.Must(tmpl.Clone()).Parse(string(raw))
+			if err != nil {
+				return err
 			}
 		}
 	}
-	serviceID := p.ByName("service")
-	if serviceID != "" {
-		page.ServiceDetails = &ServiceDetails{}
-		if services, ok := cluster.Services[hostID]; ok {
-			for _, svc := range services {
-				if svc.ID == serviceID {
-					page.ServiceDetails.Service = svc
-				}
-			}
-		}
+	if err != nil {
+		return err
 	}
-	return tmpl.Execute(w, page)
+	return tmpl.Execute(w, nil)
 }
 
 func (s *Server) Static(w http.ResponseWriter, r *http.Request, p httprouter.Params) error {

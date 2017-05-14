@@ -83,9 +83,14 @@ body {
     background-color: #428bca;
 }
 
-li.list-group-item.active.sub {
+li.list-group-item.sub.active {
 background-color: #fff;
-border: 3px solid #ddd
+border: 3px solid #ddd;
+}
+
+li> .fa {
+color: #bf3232;
+float: right;
 }
 
 

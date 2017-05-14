@@ -1,0 +1,21 @@
+{{ define "host" }}
+<div class="col-md-3">
+  <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title"> {{ param "host" }} </h3>
+      </div>
+      <div class="panel-body">
+        <canvas id="hostServices" max-width="150" height="200"></canvas>
+        <hr>
+        <ul class="list-group">
+          <li class="list-group-item">
+            Registered: <span class="label label-default">{{ host.LastRegistered }}</span>
+          </li>
+          <li class="list-group-item">
+            Last Contacted: <span class="label label-default">{{ host.LastContacted }}</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+</div>
+{{ end }}

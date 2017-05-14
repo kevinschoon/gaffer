@@ -1,0 +1,17 @@
+{{ define "overview" }}
+<h2 class="page-header">Cluster Status</h2>
+<div class="row">
+  <div class="progress">
+    {{ if eq state "DEGRADED" }}
+    <div class="progress-bar progress-bar-danger" role="progressbar" aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ progress }}%;">
+      {{ state }}
+      </div>
+      {{ else }}
+    <div class="progress-bar" role="progressbar" aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ progress }}%;">
+      {{ state }}
+      </div>
+    {{ end }}  
+  </div>
+</div>
+{{ end }}
+

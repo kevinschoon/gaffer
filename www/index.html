@@ -1,8 +1,3 @@
-{{ $CLUSTER := .Cluster}}
-{{ $HOST_ID := .HostID }}
-{{ $SERVICE_ID := .ServiceID }}
-{{ $HOST_DETAILS := .HostDetails }}
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -15,10 +10,13 @@
     <meta name="author" content="vektor.nyc">
     <!--<link rel="icon" href="../../favicon.ico">-->
 
-    <title>Gaffer</title>
+    <title>gaffer</title>
 
     <!-- Bootstrap core CSS -->
     <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link href="/static/css/font-awesome.min.css" rel="stylesheet">
 
     <!-- Custom styles for this template -->
     <link href="/static/css/dashboard.css" rel="stylesheet">
@@ -27,196 +25,82 @@
 
 <body>
 
-    <nav class="navbar navbar-inverse navbar-fixed-top">
-        <div class="container-fluid">
-            <div class="navbar-header">
-                <a class="navbar-brand" href="/gaffer">Gaffer</a>
-            </div>
-            <div id="navbar" class="navbar-collapse collapse">
-            </div>
-        </div>
-    </nav>
-
+<nav class="navbar navbar-inverse navbar-fixed-top">
     <div class="container-fluid">
-        <div class="row">
-            <div class="col-sm-3 col-md-2 sidebar">
-                <ul class="nav nav-sidebar">
-                  <center><h3><a href="/gaffer">{{ $CLUSTER }}</a></h3></center>
-                    <hr> 
-                    {{ range $host := .Hosts }}
-                      {{ if eq $HOST_ID $host.ID }}
-                      <li class="active"><a href="/gaffer/{{ $host.ID }}">{{ $host.ID }}</a></li>
-                        <ul class="list-group">
-                        {{ range $service := $HOST_DETAILS.Services }}
-                          {{ if eq $SERVICE_ID $service.ID }}
-                          <li class="list-group-item active sub"><a href="/gaffer/{{ $host.ID }}/{{ $service.ID }}">{{ $service.ID }}</a></li>
-                          {{ else }}
-                          <li class="list-group-item"><a href="/gaffer/{{ $host.ID }}/{{ $service.ID }}">{{ $service.ID }}</a></li>
-                          {{ end }}
-                        {{ end }}
-                        </ul>
-                      {{ else }}
-                      <li><a href="/gaffer/{{ $host.ID }}">{{ $host.ID }}</a></li>
-                      {{ end }}
-                    {{ end }}
-                </ul>
-            </div>
-            <!--main section-->
-          <div class="col-md-offset-2 main">
-            {{if .HostDetails}}
-            <h2 class="page-header">{{$HOST_ID}}</h2> 
-            {{else}}
-            <h2 class="page-header">Overview</h2> 
-
-              <div class="row"> 
-                <!-- overview -->
-                {{ if .HostDetails }}
-                {{ else }}
-                <div class="progress">
-                    {{ if eq .State.String "DEGRADED" }}
-                    <div class="progress-bar progress-bar-danger" role="progressbar" aria-valuenow="{{.Progress}}" aria-valuemin="0" aria-valuemax="100" style="width: {{.Progress}}%;">
-                      {{ .State.String }}
-                      </div>
-                      {{ else }}
-                    <div class="progress-bar" role="progressbar" aria-valuenow="{{.Progress}}" aria-valuemin="0" aria-valuemax="100" style="width: {{.Progress}}%;">
-                      {{ .State.String }}
-                      </div>
-                    {{ end }}  
-                  </div>
-                  {{ end }}
-
-            {{end}}
-
-                <!-- end overview -->
-
-                <!-- host details -->
-                {{ if .HostDetails }}
-                <div class="col-md-3">
-                  <div class="panel panel-default">
-                      <div class="panel-heading">
-                        <h3 class="panel-title">STATUS</h3>
-                      </div>
-                      <div class="panel-body">
-                        <canvas id="hostServices" max-width="150" height="200"></canvas>
-                        <hr>
-                        <ul class="list-group">
-                          <li class="list-group-item">
-                            {{ if .HostDetails.Host.Registered }}
-                            Registration: <span class="label label-success">registered</span>
-                            {{ else }}
-                            Registration: <span class="label label-default">pending</span>
-                            {{ end }}
-                          </li>
-                          <li class="list-group-item">
-                          {{ if .Recent .HostDetails.Host.LastContacted }}
-                            Last Contacted: <span class="label label-success">{{ .HostDetails.Host.TimeSinceLastContacted }}</span>
-                          {{ else }}
-                            Last Contacted: <span class="label label-danger">{{.HostDetails.Host.TimeSinceLastContacted}}</span>
-                          </li>
-                          <li class="list-group-item">
-                            Hostname : {{.HostDetails.Host.Hostname}}
-                          </li>
-                          <li class="list-group-item">
-                          </li>
-                        </ul>
-                        {{ end }}
-                      </div>
-                    </div>
-                </div>
-                {{ end }}
-                <!-- end host details -->
-                <!-- service details -->
-                {{ if .ServiceDetails }}
-                <div class="col-md-9">
-                  <div class="panel panel-default">
-                      <div class="panel-heading">
-                        <h3 class="panel-title">{{ .ServiceDetails.Service.ID }}</h3>
-                      </div>
-                      <div class="panel-body">
-                        <h4> args </h4>
-                        <div class="well well-sm">
-                        <code>{{.ServiceDetails.Args}}</code>
-                        </div>
-                        <hr>
-                        <div class="col-md-6">
-                          <h4> environment variables </h4>
-                          <hr>
-                          <ul class="list-group">
-                            {{ range .ServiceDetails.Service.Environment }}
-                            <li class="list-group-item">
-                              <code>{{.Name}}={{.Value}}</code>
-                            </li>
-                            {{ end }}
-                          </ul>
-                        </div>
-                        <div class="col-md-6">
-                          <h4> files </h4>
-                          <hr>
-                          <ul class="list-group">
-                            {{ range .ServiceDetails.Service.Files }}
-                            <li class="list-group-item">
-                              {{ .Path }}
-                              <br>
-                              <code>
-                              {{ .Content }}
-                              </code>
-                            </li>
-                            {{ end }}
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                </div>
-                {{end}}
-                <!-- end service details -->
-
-              </div>
-            </div>
-            <!-- end -->
+        <div class="navbar-header">
+            <a class="navbar-brand" href="/gaffer">Gaffer</a>
         </div>
     </div>
-    <footer class="footer">
-      <div class="container">
-        <p class="text-muted">
-        <a href="https://github.com/vektorlab/gaffer">github</a>
-        </p>
-      </div>
-    </footer>
+</nav>
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-sm-3 col-md-2 sidebar">
+      <ul class="nav nav-sidebar">
+        <center><h3><a href="/gaffer">{{ title }}</a></h3></center>
+        <hr> 
+      {{ range $host, $services := services }}
+        {{ if param "host" | eq $host }}
+        <li class="active"><a href="/gaffer/{{ $host }}">{{ $host }}</li> </a>
+        {{ else }}
+        <li><a href="/gaffer/{{ $host }}">{{ $host }} </a></li>
+        {{ end }}
+        <ul class="list-group">
+        {{ range $service := $services }}
+          {{ if param "service" | eq $service.ID }}
+          <li class="list-group-item sub active"> <a href="/gaffer/{{ $host }}/{{ $service.ID }}">{{ $service.ID }} </a> {{ if $service | degraded }} <i class="fa fa-exclamation-triangle" aria-hidden="true"></i> {{ end }} </li>
+          {{ else }}
+          <li class="list-group-item"><a href="/gaffer/{{ $host }}/{{ $service.ID }}">{{ $service.ID }}</a> {{ if $service | degraded }} <i class="fa fa-exclamation-triangle" aria-hidden="true"></i> {{ end }} </li>
+          {{ end }}
+        {{ end }}
+        </ul>
+      {{ end }}
+      </ul>
+    </div>
+    <!--main -->
+    <div class="col-md-offset-2 main">
+      <!-- overview -->
+      {{ block "overview" . }}{{ end }}
+      <hr>
+      <!-- end overview -->
+      {{ if param "host" }}
+        <!-- host -->
+        {{ block "host" . }} {{ end }}
+        <!-- end host -->
+      {{ end }}
+      {{ if param "service" }}
+        <!-- service -->
+        {{ block "service" . }} {{ end }}
+        <!-- end service -->
+      {{ end }}
+      <!-- end main -->
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p class="text-muted">
+    <a href="https://github.com/vektorlab/gaffer">github</a>
+    </p>
+  </div>
+</footer>
 
 
-    <!-- Bootstrap core JavaScript
-    ================================================== -->
-    <!-- Placed at the end of the document so the pages load faster -->
-    <script src="/static/js/jquery.min.js"></script>
-    <script src="/static/js/bootstrap.min.js"></script>
-    <script src="/static/js/chart.bundle.min.js"></script>
-    <script>
-      // For a pie chart
-      var data = {
-          labels: [
-              "Running",
-              "Faulted"
-          ],
-          datasets: [
-              {
-                data: [{{.ServicesRunning}}, {{.ServicesFaulted}}],
-                  backgroundColor: [
-                      "#27ba4d",
-                      "#d9534f"
-                  ],
-                  hoverBackgroundColor: [
-                      "#27ba4d",
-                      "#d9534f"
-                  ]
-              }]
-      };
-      var ctx = document.getElementById("hostServices");
-      var myPieChart = new Chart(ctx,{
-          type: 'pie',
-          data: data,
-          options: {animation: false}
-      });
-    </script>
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="/static/js/jquery.min.js"></script>
+<script src="/static/js/bootstrap.min.js"></script>
+<script src="/static/js/chart.bundle.min.js"></script>
+<script>
+  var data = {{ data }};
+  var ctx = document.getElementById("hostServices");
+  var myPieChart = new Chart(ctx,{
+      type: 'pie',
+      data: data,
+      options: {animation: false}
+  });
+</script>
+
 </body>
-
 </html>
