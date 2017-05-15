@@ -3,8 +3,8 @@ package supervisor
 import (
 	"fmt"
 	"github.com/cenkalti/backoff"
-	"github.com/vektorlab/gaffer/client"
 	"github.com/vektorlab/gaffer/log"
+	"github.com/vektorlab/gaffer/store"
 	"go.uber.org/zap"
 	"time"
 )
@@ -20,7 +20,7 @@ func maybeLog(fn func() error) error {
 }
 
 type Opts struct {
-	Client  *client.Client
+	Store   store.Store
 	Service string
 }
 
@@ -28,7 +28,7 @@ func Run(opts Opts) error {
 
 	fn := func() error {
 		// Request cluster information
-		self, svc, err := opts.Client.Register(opts.Service)
+		self, svc, err := store.Register(opts.Store, opts.Service)
 
 		if err != nil {
 			return err
@@ -43,7 +43,7 @@ func Run(opts Opts) error {
 			for {
 
 				maybeLog(func() error {
-					return opts.Client.Update(self, svc)
+					return store.Update(opts.Store, self, svc)
 				})
 
 				if !svc.Running() {

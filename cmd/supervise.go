@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/jawher/mow.cli"
-	"github.com/vektorlab/gaffer/client"
+	"github.com/vektorlab/gaffer/store"
 	"github.com/vektorlab/gaffer/supervisor"
 	"github.com/vektorlab/gaffer/user"
 	"strings"
@@ -35,7 +35,7 @@ func superviseCMD() func(*cli.Cmd) {
 					go func() {
 						maybe(supervisor.Run(
 							supervisor.Opts{
-								Client:  client.New(*endpoint, usr),
+								Store:   store.NewHTTPStore(*endpoint, usr),
 								Service: name,
 							},
 						))

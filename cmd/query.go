@@ -3,8 +3,8 @@ package cmd
 import (
 	"encoding/json"
 	"github.com/jawher/mow.cli"
-	"github.com/vektorlab/gaffer/client"
 	"github.com/vektorlab/gaffer/cluster"
+	"github.com/vektorlab/gaffer/store"
 	"github.com/vektorlab/gaffer/store/query"
 	"github.com/vektorlab/gaffer/user"
 	"io/ioutil"
@@ -12,12 +12,13 @@ import (
 )
 
 func queryCMD() func(*cli.Cmd) {
-	var c *client.Client
 	return func(cmd *cli.Cmd) {
+		cmd.Spec = "[-e [-u]] [-d]"
 		var (
 			endpoint = cmd.StringOpt("e endpoint", "http://localhost:9090", "gaffer API server")
 			auth     = cmd.StringOpt("u user", "", "user:pass basic auth string")
 		)
+		var c store.Store
 		cmd.Before = func() {
 			var usr *user.User
 			if *auth != "" {
@@ -25,7 +26,7 @@ func queryCMD() func(*cli.Cmd) {
 				maybe(err)
 				usr = u
 			}
-			c = client.New(*endpoint, usr)
+			c = store.NewHTTPStore(*endpoint, usr)
 		}
 		cmd.Command("create", "create a new cluster", func(cmd *cli.Cmd) {
 			var path = cmd.StringArg("PATH", "", "path to the cluster configuration file, use \"-\" to read from stdin")
