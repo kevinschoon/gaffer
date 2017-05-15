@@ -13,12 +13,6 @@ import (
 
 const TempPath = "/tmp"
 
-type State struct {
-	Date    time.Time   `json:"date"`
-	Process *os.Process `json:"process"`
-	Message string      `json:"message"`
-}
-
 // Service is a configurable process
 // that must remain running
 type Service struct {
@@ -26,7 +20,6 @@ type Service struct {
 	Args          []string    `json:"args"`
 	Cmd           *exec.Cmd   `json:"-"`
 	Process       *os.Process `json:"process"`
-	History       []*State    `json:"history"`
 	Environment   []*Env      `json:"environment"`
 	Files         []*File     `json:"files"`
 	LastContacted time.Time   `json:"last_contacted"`
@@ -35,9 +28,6 @@ type Service struct {
 func (s Service) TimeSinceLastContacted() time.Duration {
 	return time.Since(s.LastContacted)
 }
-
-//TODO
-//func (s *Service) Flapping() bool {}
 
 func (s *Service) init() error {
 
@@ -71,16 +61,6 @@ func (s *Service) Update() {
 	s.LastContacted = time.Now()
 	if s.Running() {
 		s.Process = s.Cmd.Process
-	} else {
-		if s.History == nil {
-			s.History = []*State{}
-		}
-		s.History = append(s.History, &State{
-			Date:    time.Now(),
-			Process: s.Process,
-			Message: s.Cmd.ProcessState.String(),
-		})
-		s.Process = nil
 	}
 }
 
