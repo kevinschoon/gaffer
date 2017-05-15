@@ -13,7 +13,7 @@ import (
 
 func queryCMD() func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
-		cmd.Spec = "[-e [-u]] [-d]"
+		cmd.Spec = "[-e -u]"
 		var (
 			endpoint = cmd.StringOpt("e endpoint", "http://localhost:9090", "gaffer API server")
 			auth     = cmd.StringOpt("u user", "", "user:pass basic auth string")
