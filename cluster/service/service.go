@@ -29,6 +29,15 @@ func (s Service) TimeSinceLastContacted() time.Duration {
 	return time.Since(s.LastContacted)
 }
 
+func (s Service) Env(name string) *Env {
+	for _, env := range s.Environment {
+		if env.Name == name {
+			return env
+		}
+	}
+	return nil
+}
+
 func (s *Service) init() error {
 
 	tmp, err := ioutil.TempDir(TempPath, "gaffer")

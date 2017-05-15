@@ -107,6 +107,17 @@ func (c Cluster) State() State {
 	return state
 }
 
+func (c Cluster) Service(host, id string) *service.Service {
+	if services, ok := c.Services[host]; ok {
+		for _, svc := range services {
+			if svc.ID == id {
+				return svc
+			}
+		}
+	}
+	return nil
+}
+
 // Quorum returns the optimal quorum size
 // for the cluster
 func (c Cluster) Quorum() int {
