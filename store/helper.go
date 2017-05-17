@@ -6,7 +6,25 @@ import (
 	"github.com/vektorlab/gaffer/cluster/host"
 	"github.com/vektorlab/gaffer/cluster/service"
 	"github.com/vektorlab/gaffer/store/query"
+	"math/rand"
+	"time"
 )
+
+const (
+	MAX_PORT int = 65535
+	MIN_PORT int = 49152
+)
+
+func assignPort(services []*service.Service) int {
+	rand.Seed(time.Now().Unix())
+	port := rand.Intn(MAX_PORT-MIN_PORT) + MIN_PORT
+	for _, svc := range services {
+		if svc.Port == port {
+			return assignPort(services)
+		}
+	}
+	return port
+}
 
 func Register(store Store, id string) (*host.Host, *service.Service, error) {
 	var (
@@ -29,10 +47,6 @@ func Register(store Store, id string) (*host.Host, *service.Service, error) {
 		return nil, nil, fmt.Errorf("could not register with gaffer API")
 	}
 	self.Update()
-	resp, err = store.Query(&query.Query{Update: &query.Update{Host: self}})
-	if err != nil {
-		return nil, nil, err
-	}
 	services, ok := config.Services[self.ID]
 	if !ok {
 		return nil, nil, fmt.Errorf("no services configured for this host")
@@ -45,12 +59,10 @@ func Register(store Store, id string) (*host.Host, *service.Service, error) {
 	if svc == nil {
 		return nil, nil, fmt.Errorf("could not register service %s", id)
 	}
-	return self, svc, nil
-}
-
-func Update(store Store, h *host.Host, svc *service.Service) error {
-	h.Update()
-	//svc.Update()
-	_, err := store.Query(&query.Query{Update: &query.Update{h, svc}})
-	return err
+	// Assign random port if not already configured
+	if svc.Port == 0 {
+		svc.Port = assignPort(config.ServicesFlat())
+	}
+	_, err = store.Query(&query.Query{Update: &query.Update{Host: self, Service: svc}})
+	return self, svc, err
 }

@@ -3,7 +3,6 @@ package cluster
 import (
 	"github.com/vektorlab/gaffer/cluster/host"
 	"github.com/vektorlab/gaffer/cluster/service"
-	"math"
 )
 
 // State represents the state of a given cluster
@@ -119,8 +118,12 @@ func (c Cluster) Service(host, id string) *service.Service {
 	return nil
 }
 
-// Quorum returns the optimal quorum size
-// for the cluster
-func (c Cluster) Quorum() int {
-	return int(math.Floor(float64(len(c.Hosts)) + .5))
+func (c Cluster) ServicesFlat() []*service.Service {
+	flat := []*service.Service{}
+	for _, services := range c.Services {
+		for _, service := range services {
+			flat = append(flat, service)
+		}
+	}
+	return flat
 }

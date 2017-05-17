@@ -325,10 +325,14 @@ func Launch(db store.Store, id string) error {
 		return err
 	}
 	server.HandleHTTP("/", "/debug")
-	listener, err := net.Listen("tcp", ":9091")
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", svc.Port))
 	if err != nil {
 		return err
 	}
+	log.Log.Info(
+		svc.ID,
+		zap.String("message", fmt.Sprintf("supervisor listening @0.0.0.0:%d", svc.Port)),
+	)
 	err = http.Serve(listener, nil)
 	supervisor.shutdown <- true
 	return err
