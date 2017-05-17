@@ -63,6 +63,7 @@ func Register(store Store, id string) (*host.Host, *service.Service, error) {
 	if svc.Port == 0 {
 		svc.Port = assignPort(config.ServicesFlat())
 	}
+	svc.Registered = true
 	_, err = store.Query(&query.Query{Update: &query.Update{Host: self, Service: svc}})
 	return self, svc, err
 }

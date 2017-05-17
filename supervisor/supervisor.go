@@ -231,28 +231,28 @@ func (s *Supervisor) replace(svc *service.Service) error {
 
 type StatusRequest struct{}
 type StatusResponse struct {
-	Uptime time.Duration `json:"uptime"`
-	Pid    int           `json:"pid"`
+	Process *os.Process `json:"process"`
 }
 
 func (s Supervisor) Status(req StatusRequest, resp *StatusResponse) error {
 	if s.proc == nil {
 		return fmt.Errorf("process is not running")
 	}
-	resp.Pid = s.proc.Pid()
-	resp.Uptime = time.Since(s.started)
+	resp.Process = s.proc.Cmd.Process
+	//resp.Pid = s.proc.Pid()
+	//resp.Uptime = time.Since(s.started)
 	return nil
 }
 
 type RestartRequest struct{}
-type RestartResponse struct{ Restarted bool }
+type RestartResponse struct{ Process *os.Process }
 
 func (s Supervisor) Restart(req RestartRequest, resp *RestartResponse) error {
 	err := s.callRestart()
 	if err != nil {
 		return err
 	}
-	resp.Restarted = true
+	resp.Process = s.proc.Cmd.Process
 	return nil
 }
 

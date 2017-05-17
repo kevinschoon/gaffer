@@ -8,6 +8,7 @@ type Service struct {
 	Environment []*Env   `json:"environment"`
 	Files       []*File  `json:"files"`
 	Port        int      `json:"port"`
+	Registered  bool     `json:"registered"`
 }
 
 func (s Service) Env(name string) *Env {
