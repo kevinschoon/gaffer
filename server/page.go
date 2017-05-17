@@ -42,15 +42,6 @@ func helpers(c *cluster.Cluster, p httprouter.Params) template.FuncMap {
 				running  int
 				degraded int
 			)
-			if services, ok := c.Services[p.ByName("host")]; ok {
-				for _, service := range services {
-					if service.TimeSinceLastContacted() < 20*time.Second {
-						running++
-					} else {
-						degraded++
-					}
-				}
-			}
 			data := &Data{
 				Labels: []string{"Running", "Faulted"},
 				Datasets: []Dataset{
@@ -70,15 +61,6 @@ func helpers(c *cluster.Cluster, p httprouter.Params) template.FuncMap {
 		"degraded": func(i interface{}) bool {
 			switch t := i.(type) {
 			case *host.Host:
-				if services, ok := c.Services[t.ID]; ok {
-					for _, service := range services {
-						if service.TimeSinceLastContacted() > 20*time.Second {
-							return true
-						}
-					}
-				}
-				return t.TimeSinceLastContacted() > 20*time.Second
-			case *service.Service:
 				return t.TimeSinceLastContacted() > 20*time.Second
 			}
 			return true

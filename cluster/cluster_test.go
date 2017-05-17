@@ -1,5 +1,6 @@
 package cluster
 
+/*
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/vektorlab/gaffer/cluster/host"
@@ -164,3 +165,4 @@ func TestCluster(t *testing.T) {
 	assert.Equal(t, DEGRADED, degradedHost.State())
 	assert.Equal(t, DEGRADED, degradedService.State())
 }
+*/

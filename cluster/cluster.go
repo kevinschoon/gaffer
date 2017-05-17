@@ -4,7 +4,6 @@ import (
 	"github.com/vektorlab/gaffer/cluster/host"
 	"github.com/vektorlab/gaffer/cluster/service"
 	"math"
-	"time"
 )
 
 // State represents the state of a given cluster
@@ -58,52 +57,54 @@ func New(id string, size int) *Cluster {
 
 func (c Cluster) State() State {
 	state := CONVERGING
-	if c.Hosts == nil {
-		// No hosts registered
-		// CONVERGING
-		return state
-	}
-	for _, host := range c.Hosts {
-		if !host.Registered {
-			// Not all hosts registered
+	/*
+		if c.Hosts == nil {
+			// No hosts registered
 			// CONVERGING
 			return state
 		}
-	}
-	// All hosts registered
-	// STARTING
-	state++
-	for _, services := range c.Services {
-		for _, service := range services {
-			// Process is not registered
-			if service.Process == nil {
+		for _, host := range c.Hosts {
+			if !host.Registered {
+				// Not all hosts registered
+				// CONVERGING
 				return state
 			}
 		}
-	}
-	// All services are running
-	// STARTED
-	state++
-	for _, host := range c.Hosts {
-		// Host has not been contacted recently
-		if host.TimeSinceLastContacted() > 1*time.Minute {
-			// DEGRADED
-			state++
-			break
+		// All hosts registered
+		// STARTING
+		state++
+		for _, services := range c.Services {
+			for _, service := range services {
+				// Process is not registered
+				//if service.Process == nil {
+				//	return state
+				//}
+			}
 		}
-	}
-
-	for _, services := range c.Services {
-		for _, service := range services {
-			if service.TimeSinceLastContacted() > 1*time.Minute || service.LastContacted.IsZero() {
+		// All services are running
+		// STARTED
+		state++
+		for _, host := range c.Hosts {
+			// Host has not been contacted recently
+			if host.TimeSinceLastContacted() > 1*time.Minute {
+				// DEGRADED
 				state++
 				break
 			}
 		}
-	}
-	if state > DEGRADED {
-		return DEGRADED
-	}
+
+		for _, services := range c.Services {
+			for _, service := range services {
+				if service.TimeSinceLastContacted() > 1*time.Minute || service.LastContacted.IsZero() {
+					state++
+					break
+				}
+			}
+		}
+		if state > DEGRADED {
+			return DEGRADED
+		}
+	*/
 	return state
 }
 

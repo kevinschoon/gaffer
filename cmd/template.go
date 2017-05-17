@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/jawher/mow.cli"
 	"github.com/vektorlab/gaffer/cluster"
+	"github.com/vektorlab/gaffer/operator/mock"
 	"github.com/vektorlab/gaffer/store/query"
 	"os"
 )
@@ -17,6 +18,7 @@ func templateCMD() func(*cli.Cmd) {
 		)
 		cmd.Action = func() {
 			tmpl := cluster.New(*name, *size)
+			tmpl.Services = mock.Mock{20}.Update(tmpl)
 			if *asQuery {
 				q := query.Query{
 					Create: &query.Create{tmpl},

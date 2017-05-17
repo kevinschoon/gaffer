@@ -50,7 +50,7 @@ func Register(store Store, id string) (*host.Host, *service.Service, error) {
 
 func Update(store Store, h *host.Host, svc *service.Service) error {
 	h.Update()
-	svc.Update()
+	//svc.Update()
 	_, err := store.Query(&query.Query{Update: &query.Update{h, svc}})
 	return err
 }

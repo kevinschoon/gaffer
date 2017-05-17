@@ -27,6 +27,7 @@ func Run() {
 			log.Debug()
 		}
 	}
+	app.Command("status", "Check the status of each registered service", statusCMD())
 	app.Command("server", "Run the scheduler HTTP server", serverCMD(debug))
 	app.Command("query", "Perform HTTP queries", queryCMD())
 	app.Command("template", "Generate a configuration template", templateCMD())
