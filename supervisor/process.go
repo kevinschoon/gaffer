@@ -88,7 +88,7 @@ func (p *Process) Start() error {
 	}
 
 	log.Log.Info(
-		p.svc.ID,
+		"creating new service process",
 		zap.String("process", p.Cmd.Path),
 		zap.Strings("args", p.Cmd.Args),
 	)

@@ -19,10 +19,7 @@ type Client struct {
 func (c *Client) client() (*rpc.Client, error) {
 	if c.conn == nil {
 		address := fmt.Sprintf("%s:%d", c.Host.Hostname, c.Service.Port)
-		log.Log.Info(
-			"supervisor.client",
-			zap.String("message", fmt.Sprintf("dailing %s", address)),
-		)
+		log.Log.Info(fmt.Sprintf("dailing %s", address))
 		conn, err := rpc.DialHTTP("tcp", address)
 		if err != nil {
 			return nil, err
@@ -39,8 +36,7 @@ func (c Client) call(method string, req, resp interface{}) error {
 	}
 	err = conn.Call(method, req, resp)
 	log.Log.Debug(
-		"supervisor.client",
-		zap.String("message", "RPC call"),
+		"rpc call",
 		zap.String("method", method),
 		zap.Any("request", req),
 		zap.Any("response", resp),

@@ -107,8 +107,7 @@ func (s *Supervisor) ensureRunning() {
 	}
 	if !s.proc.Running() {
 		log.Log.Info(
-			s.svc.ID,
-			zap.String("message", "process is not running"),
+			"process is not running",
 			zap.Any("service", s.svc),
 			zap.Any("process", s.proc),
 		)
@@ -126,8 +125,7 @@ func (s *Supervisor) ensureRunning() {
 			exp,
 			backoff.Notify(func(err error, d time.Duration) {
 				log.Log.Info(
-					s.svc.ID,
-					zap.String("message", "process failed to start"),
+					"process failed to start",
 					zap.Duration("duration", d),
 					zap.Any("service", s.svc),
 					zap.Any("process", s.proc),
@@ -136,8 +134,9 @@ func (s *Supervisor) ensureRunning() {
 			}))
 		if err != nil {
 			log.Log.Warn(
-				s.svc.ID,
-				zap.String("message", "process has timed out"),
+				"process has timed out",
+				zap.Any("service", s.svc),
+				zap.Any("process", s.proc),
 				zap.Error(err),
 			)
 		}

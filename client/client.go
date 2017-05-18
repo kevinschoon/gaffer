@@ -1,11 +1,14 @@
 package client
 
 import (
+	"github.com/vektorlab/gaffer/cluster"
 	"github.com/vektorlab/gaffer/cluster/host"
 	"github.com/vektorlab/gaffer/cluster/service"
+	"github.com/vektorlab/gaffer/log"
 	"github.com/vektorlab/gaffer/store"
 	"github.com/vektorlab/gaffer/store/query"
 	"github.com/vektorlab/gaffer/supervisor"
+	"go.uber.org/zap"
 	"os"
 )
 
@@ -62,8 +65,13 @@ func (c Client) Processes() (cluster.ProcessList, error) {
 		// TODO concurrency
 		pl[host.ID] = map[string]*os.Process{}
 		for _, svc := range services[host.ID] {
-			p, _ := c.rpc(host, svc).Status()
-			if p != nil {
+			p, err := c.rpc(host, svc).Status()
+			if err != nil {
+				log.Log.Info(
+					"could not establish client RPC connection",
+					zap.Error(err),
+				)
+			} else {
 				pl[host.ID][svc.ID] = p
 			}
 		}
