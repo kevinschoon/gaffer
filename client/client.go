@@ -6,7 +6,6 @@ import (
 	"github.com/vektorlab/gaffer/store"
 	"github.com/vektorlab/gaffer/store/query"
 	"github.com/vektorlab/gaffer/supervisor"
-	"github.com/vektorlab/gaffer/user"
 	"os"
 )
 
