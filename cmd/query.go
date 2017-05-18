@@ -6,38 +6,17 @@ import (
 	"github.com/vektorlab/gaffer/cluster"
 	"github.com/vektorlab/gaffer/store"
 	"github.com/vektorlab/gaffer/store/query"
-	//"github.com/vektorlab/gaffer/user"
 	"io/ioutil"
 	"os"
 )
 
-func queryCMD() func(*cli.Cmd) {
+func queryCMD(sp string) func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
-		cmd.Spec = "[-d]"
-		var (
-			//endpoint = cmd.StringOpt("e endpoint", "http://localhost:9090", "gaffer API server")
-			//auth     = cmd.StringOpt("u user", "", "user:pass basic auth string")
-			dbStr = cmd.StringOpt("d db", "./gaffer.db", "database connection string")
-		)
-		var db store.Store
-		cmd.Before = func() {
-			/*
-				var usr *user.User
-				if *auth != "" {
-					u, err := user.FromString(*auth)
-					maybe(err)
-					usr = u
-				}
-				fmt.Println(dbStr)
-				c = store.NewHTTPStore(*endpoint, usr)
-			*/
-			d, err := store.NewSQLStore("", *dbStr, false)
-			maybe(err)
-			db = d
-		}
 		cmd.Command("create", "create a new cluster", func(cmd *cli.Cmd) {
 			var path = cmd.StringArg("PATH", "", "path to the cluster configuration file, use \"-\" to read from stdin")
 			cmd.Action = func() {
+				db, err := store.NewStore(sp)
+				maybe(err)
 				var config *cluster.Cluster
 				if *path == "-" {
 					config = &cluster.Cluster{}
@@ -57,6 +36,8 @@ func queryCMD() func(*cli.Cmd) {
 		})
 		cmd.Command("read", "read cluster configuration", func(cmd *cli.Cmd) {
 			cmd.Action = func() {
+				db, err := store.NewStore(sp)
+				maybe(err)
 				resp, err := db.Query(&query.Query{Read: &query.Read{}})
 				maybe(err)
 				maybe(json.NewEncoder(os.Stdout).Encode(resp))

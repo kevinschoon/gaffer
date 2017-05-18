@@ -21,17 +21,18 @@ func Run() {
 	app.Version("version", fmt.Sprintf("%s (%s)", version.Version, version.GitSHA))
 	var (
 		debug = app.BoolOpt("d debug", false, "output debug information")
+		store = app.StringOpt("s store", "sqlite://gaffer.db", "store configuration pattern")
 	)
 	app.Before = func() {
 		if *debug {
 			log.Debug()
 		}
 	}
-	app.Command("status", "Check the status of each registered service", statusCMD())
-	app.Command("server", "Run the scheduler HTTP server", serverCMD(debug))
-	app.Command("query", "Perform HTTP queries", queryCMD())
-	app.Command("template", "Generate a configuration template", templateCMD())
-	app.Command("supervise", "Supervise a cluster process", superviseCMD())
-	app.Command("init", "Initialize the cluster database", initCMD())
+	app.Command("server", "run the Gaffer HTTP server process", serverCMD(*store))
+	app.Command("status", "check the status of the cluster", statusCMD(*store))
+	app.Command("query", "perform queries", queryCMD(*store))
+	app.Command("template", "generate a cluster configuration", templateCMD())
+	app.Command("service", "supervise one or more a cluster services", serviceCMD(*store))
+	app.Command("init", "initialize the a cluster sqlite store", initCMD())
 	maybe(app.Run(os.Args))
 }

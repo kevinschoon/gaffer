@@ -222,21 +222,20 @@ func (s *SQLStore) Query(q *query.Query) (*query.Response, error) {
 
 func (s *SQLStore) Close() error { return s.db.Close() }
 
-func New(name, connect string, init bool) (*SQLStore, error) {
-	db, err := sql.Open("sqlite3", connect)
+func (s *SQLStore) Init(name string) error {
+	_, err := s.db.Exec(initStmt)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec("INSERT INTO cluster(id) values(?)", name)
+	return err
+}
+
+func New(pattern string) (*SQLStore, error) {
+	db, err := sql.Open("sqlite3", pattern)
 	if err != nil {
 		return nil, err
 	}
 	db.SetMaxOpenConns(1)
-	if init {
-		_, err = db.Exec(initStmt)
-		if err != nil {
-			return nil, err
-		}
-		_, err = db.Exec("INSERT INTO cluster(id) values(?)", name)
-		if err != nil {
-			return nil, err
-		}
-	}
 	return &SQLStore{db}, nil
 }

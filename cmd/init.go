@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/jawher/mow.cli"
-	"github.com/vektorlab/gaffer/store"
+	"github.com/vektorlab/gaffer/store/sql"
 )
 
 func initCMD() func(*cli.Cmd) {
@@ -12,8 +12,9 @@ func initCMD() func(*cli.Cmd) {
 			dbStr = cmd.StringOpt("d db", "./gaffer.db", "database connection string")
 		)
 		cmd.Action = func() {
-			_, err := store.NewSQLStore(*name, *dbStr, true)
+			db, err := sql.New(*dbStr)
 			maybe(err)
+			maybe(db.Init(*name))
 		}
 	}
 }

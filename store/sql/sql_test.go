@@ -18,8 +18,9 @@ const CLEAN = false
 
 func tempDB(t *testing.T) (*SQLStore, func()) {
 	path, _ := ioutil.TempDir("/tmp", "gaffer-test-")
-	db, err := New("mock-cluster", fmt.Sprintf("%s/gaffer.db", path), true)
+	db, err := New(fmt.Sprintf("%s/gaffer.db", path))
 	assert.NoError(t, err)
+	assert.NoError(t, db.Init("mock-cluster"))
 	return db, func() {
 		fmt.Printf("rm %s ", path)
 		if CLEAN {

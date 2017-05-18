@@ -7,10 +7,10 @@ import (
 	"github.com/vektorlab/gaffer/store"
 )
 
-func statusCMD() func(*cli.Cmd) {
+func statusCMD(sp string) func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		cmd.Action = func() {
-			db, err := store.NewSQLStore("gaffer", "./gaffer.db", false)
+			db, err := store.NewStore(sp)
 			maybe(err)
 			c := client.NewClient(db)
 			hosts, err := c.Hosts()
