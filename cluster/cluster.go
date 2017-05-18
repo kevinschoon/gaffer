@@ -3,7 +3,18 @@ package cluster
 import (
 	"github.com/vektorlab/gaffer/cluster/host"
 	"github.com/vektorlab/gaffer/cluster/service"
+	"os"
 )
+
+type ProcessList map[string]map[string]*os.Process
+
+func (p ProcessList) Len() int {
+	var l int
+	for _, m := range p {
+		l += len(m)
+	}
+	return l
+}
 
 // State represents the state of a given cluster
 type State int
@@ -54,56 +65,34 @@ func New(id string, size int) *Cluster {
 	return cluster
 }
 
-func (c Cluster) State() State {
+func (c Cluster) State(p ProcessList) State {
 	state := CONVERGING
-	/*
-		if c.Hosts == nil {
-			// No hosts registered
+	if c.Hosts == nil {
+		// No hosts registered
+		// CONVERGING
+		return state
+	}
+	for _, host := range c.Hosts {
+		if !host.Registered {
+			// Not all hosts registered
 			// CONVERGING
 			return state
 		}
-		for _, host := range c.Hosts {
-			if !host.Registered {
-				// Not all hosts registered
-				// CONVERGING
-				return state
-			}
-		}
-		// All hosts registered
+	}
+	// All hosts registered
+	// STARTING
+	state++
+	var s int
+	for _, services := range c.Services {
+		s += len(services)
+	}
+	if s != p.Len() {
 		// STARTING
-		state++
-		for _, services := range c.Services {
-			for _, service := range services {
-				// Process is not registered
-				//if service.Process == nil {
-				//	return state
-				//}
-			}
-		}
-		// All services are running
-		// STARTED
-		state++
-		for _, host := range c.Hosts {
-			// Host has not been contacted recently
-			if host.TimeSinceLastContacted() > 1*time.Minute {
-				// DEGRADED
-				state++
-				break
-			}
-		}
-
-		for _, services := range c.Services {
-			for _, service := range services {
-				if service.TimeSinceLastContacted() > 1*time.Minute || service.LastContacted.IsZero() {
-					state++
-					break
-				}
-			}
-		}
-		if state > DEGRADED {
-			return DEGRADED
-		}
-	*/
+		return state
+	}
+	// All services are running
+	// STARTED
+	state++
 	return state
 }
 

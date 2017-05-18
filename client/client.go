@@ -9,8 +9,6 @@ import (
 	"os"
 )
 
-type ProcessList map[string]map[string]*os.Process
-
 // Client handles all communication
 // across a Gaffer cluster.
 type Client struct {
@@ -44,7 +42,7 @@ func (c Client) Hosts() ([]*host.Host, error) {
 	return resp.Read.Cluster.Hosts, nil
 }
 
-func (c Client) Processes() (ProcessList, error) {
+func (c Client) Processes() (cluster.ProcessList, error) {
 	hosts, err := c.Hosts()
 	if err != nil {
 		return nil, err
@@ -53,7 +51,7 @@ func (c Client) Processes() (ProcessList, error) {
 	if err != nil {
 		return nil, err
 	}
-	pl := ProcessList{}
+	pl := cluster.ProcessList{}
 	for _, host := range hosts {
 		if !host.Registered {
 			continue
