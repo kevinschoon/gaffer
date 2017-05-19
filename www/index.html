@@ -47,10 +47,10 @@
         {{ end }}
         <ul class="list-group">
         {{ range $service := $services }}
-          {{ if param "service" | eq $service.ID }}
-          <li class="list-group-item sub active"> <a href="/gaffer/{{ $host }}/{{ $service.ID }}">{{ $service.ID }} </a> {{ if $service | degraded }} <i class="fa fa-exclamation-triangle" aria-hidden="true"></i> {{ end }} </li>
+          {{ if selected $host $service.ID }}
+          <li class="list-group-item sub active"> <a href="/gaffer/{{ $host }}/{{ $service.ID }}">{{ $service.ID }} </a> {{ if started $host $service.ID }} <i class="fa fa-check" aria-hidden="true"> </i> {{ else }} <i class="fa fa-exclamation-triangle warn" aria-hidden="true"></i> {{ end }} </li>
           {{ else }}
-          <li class="list-group-item"><a href="/gaffer/{{ $host }}/{{ $service.ID }}">{{ $service.ID }}</a> {{ if $service | degraded }} <i class="fa fa-exclamation-triangle" aria-hidden="true"></i> {{ end }} </li>
+          <li class="list-group-item"><a href="/gaffer/{{ $host }}/{{ $service.ID }}">{{ $service.ID }} </a> {{ if started $host $service.ID }} <i class="fa fa-check" aria-hidden="true"> </i>{{ else }}<i class="fa fa-exclamation-triangle warn" aria-hidden="true"></i> {{ end }} </li>
           {{ end }}
         {{ end }}
         </ul>
@@ -60,7 +60,9 @@
     <!--main -->
     <div class="col-md-offset-2 main">
       <!-- overview -->
-      {{ block "overview" . }}{{ end }}
+      {{ if home }}
+        {{ block "overview" . }}{{ end }}
+      {{ end }}
       <hr>
       <!-- end overview -->
       {{ if param "host" }}
@@ -93,13 +95,7 @@
 <script src="/static/js/bootstrap.min.js"></script>
 <script src="/static/js/chart.bundle.min.js"></script>
 <script>
-  var data = {{ data }};
-  var ctx = document.getElementById("hostServices");
-  var myPieChart = new Chart(ctx,{
-      type: 'pie',
-      data: data,
-      options: {animation: false}
-  });
+{{ chart }}
 </script>
 
 </body>

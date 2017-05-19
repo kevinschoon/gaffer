@@ -1,17 +1,26 @@
 {{ define "overview" }}
-<h2 class="page-header">Cluster Status</h2>
+<h2 class="page-header"> overview </h2>
 <div class="row">
-  <div class="progress">
-    {{ if eq state "DEGRADED" }}
-    <div class="progress-bar progress-bar-danger" role="progressbar" aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ progress }}%;">
-      {{ state }}
+  <div class="col-md-3">
+    <div class="panel panel-default chart">
+      <div class="panel-heading">
+      <h2 class="panel-title">services</h2>
       </div>
-      {{ else }}
-    <div class="progress-bar" role="progressbar" aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ progress }}%;">
-      {{ state }}
+      <div class="panel-body">
+        <canvas id="chart" width="150" height="100"></canvas>
       </div>
-    {{ end }}  
+    </div>
   </div>
+  <div class="col-md-9">
+    <div class="panel panel-default chart">
+      <div class="panel-heading">
+      <h2 class="panel-title">Configuration</h2>
+      </div>
+      <div class="panel-body">
+      </div>
+    </div>
+  </div>
+
 </div>
 {{ end }}
 
