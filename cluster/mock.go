@@ -5,9 +5,6 @@ import (
 	"github.com/vektorlab/gaffer/cluster/service"
 )
 
-// Mock is an Operator for testing
-// Mock executes two commands on every
-// host in the cluster
 type Mock struct {
 	Duration int
 }

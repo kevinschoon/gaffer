@@ -68,6 +68,7 @@ type Cluster struct {
 	ID       string                        `json:"id"`
 	Hosts    []*host.Host                  `json:"hosts"`
 	Services map[string][]*service.Service `json:"services"`
+	Config   Config                        `json:"config"`
 }
 
 func New(id string, size int) *Cluster {
