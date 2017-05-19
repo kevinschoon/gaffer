@@ -6,37 +6,9 @@
         <h3 class="panel-title">{{ param "service" }}</h3>
       </div>
       <div class="panel-body">
-        <h4> args </h4>
-        <div class="well well-sm">
-        <code>{{ service.Args }}</code>
-        </div>
-        <hr>
-        <div class="col-md-6">
-          <h4> environment variables </h4>
-          <hr>
-          <ul class="list-group">
-            {{ range service.Environment }}
-            <li class="list-group-item">
-              <code>{{.Name}}={{.Value}}</code>
-            </li>
-            {{ end }}
-          </ul>
-        </div>
-        <div class="col-md-6">
-          <h4> files </h4>
-          <hr>
-          <ul class="list-group">
-            {{ range service.Files }}
-            <li class="list-group-item">
-              {{ .Path }}
-              <br>
-              <code>
-              {{ .Content }}
-              </code>
-            </li>
-            {{ end }}
-          </ul>
-        </div>
+        <code>
+          {{ service_json }}
+        </code>
       </div>
     </div>
 </div>

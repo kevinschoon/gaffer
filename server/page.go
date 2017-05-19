@@ -88,10 +88,25 @@ func helpers(c *cluster.Cluster, pl cluster.ProcessList, p httprouter.Params) te
 				}.JS("polarArea", "chart")
 			}
 		},
-		"started":  func(hostID, serviceID string) bool { return pl.Started(hostID, serviceID) },
-		"host":     func() *host.Host { return c.Host(p.ByName("host")) },
-		"hosts":    func() []*host.Host { return c.Hosts },
-		"service":  func() *service.Service { return c.Service(p.ByName("host"), p.ByName("service")) },
+		"config_json": func() string {
+			raw, err := json.MarshalIndent(c.Config, " ", " ")
+			if err != nil {
+				return ""
+			}
+			return string(raw)
+		},
+		"started": func(hostID, serviceID string) bool { return pl.Started(hostID, serviceID) },
+		"host":    func() *host.Host { return c.Host(p.ByName("host")) },
+		"hosts":   func() []*host.Host { return c.Hosts },
+		"service": func() *service.Service { return c.Service(p.ByName("host"), p.ByName("service")) },
+		"service_json": func() string {
+			svc := c.Service(p.ByName("host"), p.ByName("service"))
+			raw, err := json.MarshalIndent(svc, " ", " ")
+			if err != nil {
+				return ""
+			}
+			return string(raw)
+		},
 		"services": func() map[string][]*service.Service { return c.Services },
 		"selected": func(hostID, serviceID string) bool {
 			return p.ByName("host") == hostID && p.ByName("service") == serviceID
