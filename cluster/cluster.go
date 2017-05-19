@@ -16,6 +16,24 @@ func (p ProcessList) Len() int {
 	return l
 }
 
+func (p ProcessList) Started(hostID string, serviceID string) bool {
+	if _, ok := p[hostID]; ok {
+		if _, ok := p[hostID][serviceID]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+type Stats struct {
+	Started int
+	Stopped int
+	Hosts   map[string]struct {
+		Started int
+		Stopped int
+	}
+}
+
 // State represents the state of a given cluster
 type State int
 
@@ -86,7 +104,7 @@ func (c Cluster) State(p ProcessList) State {
 	for _, services := range c.Services {
 		s += len(services)
 	}
-	if s != p.Len() {
+	if len(c.ServicesFlat()) != p.Len() {
 		// STARTING
 		return state
 	}
@@ -94,6 +112,41 @@ func (c Cluster) State(p ProcessList) State {
 	// STARTED
 	state++
 	return state
+}
+
+func (c Cluster) Stats(p ProcessList) *Stats {
+	stats := &Stats{
+		Started: 0,
+		Stopped: 0,
+		Hosts: map[string]struct {
+			Started int
+			Stopped int
+		}{},
+	}
+	for hostID, services := range c.Services {
+		stats.Started += len(services)
+		hostStats := struct {
+			Started int
+			Stopped int
+		}{}
+		if running, ok := p[hostID]; ok {
+			hostStats.Started = len(running)
+			hostStats.Stopped = len(services) - len(running)
+		} else {
+			hostStats.Stopped = len(services)
+		}
+		stats.Hosts[hostID] = hostStats
+	}
+	return stats
+}
+
+func (c Cluster) Host(id string) *host.Host {
+	for _, host := range c.Hosts {
+		if host.ID == id {
+			return host
+		}
+	}
+	return nil
 }
 
 func (c Cluster) Service(host, id string) *service.Service {

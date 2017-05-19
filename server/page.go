@@ -11,12 +11,30 @@ import (
 	"html/template"
 	"net/http"
 	"strings"
-	"time"
 )
+
+const chartScript = `
+var ctx = document.getElementById("%s");
+var myPieChart = new Chart(ctx,{
+		type: '%s',
+		data: %s,
+		options: {animation: false}
+});
+`
+
+var colors = []string{"#696D7D", "#6F9283", "#8D9F87", "#CDC6A5", "#F0DCCA"}
 
 type Data struct {
 	Labels   []string  `json:"labels"`
 	Datasets []Dataset `json:"datasets"`
+}
+
+func (d Data) JS(chartType, elementID string) template.JS {
+	raw, err := json.Marshal(d)
+	if err != nil {
+		return template.JS(fmt.Sprintf("console.log(\"ERROR: %s\")", err.Error()))
+	}
+	return template.JS(fmt.Sprintf(chartScript, elementID, chartType, string(raw)))
 }
 
 type Dataset struct {
@@ -25,73 +43,68 @@ type Dataset struct {
 	HoverBackgroundColor []string `json:"hoverBackgroundColor"`
 }
 
-func helpers(c *cluster.Cluster, p httprouter.Params) template.FuncMap {
+func helpers(c *cluster.Cluster, pl cluster.ProcessList, p httprouter.Params) template.FuncMap {
+	stats := c.Stats(pl)
 	return template.FuncMap{
 		"title": func() string { return c.ID },
+		"home":  func() bool { return p.ByName("host") == "" },
 		"param": func(key string) string { return p.ByName(key) },
-		"state": func() string { return c.State().String() },
+		"state": func() string { return c.State(pl).String() },
 		"progress": func() int {
-			progress := int(float64(c.State()) / float64(3) * 100)
+			progress := int(float64(c.State(pl)) / float64(3) * 100)
 			if progress > 100 {
 				return 100
 			}
 			return progress
 		},
-		"data": func() template.JS {
-			var (
-				running  int
-				degraded int
-			)
-			data := &Data{
-				Labels: []string{"Running", "Faulted"},
-				Datasets: []Dataset{
-					Dataset{
-						Data:                 []int{running, degraded},
-						BackgroundColor:      []string{"#27ba4d", "#d9534f"},
-						HoverBackgroundColor: []string{"#27ba4d", "#d9534f"},
+		"chart": func() template.JS {
+			if p.ByName("host") != "" {
+				return Data{
+					Labels: []string{"Started", "Stopped"},
+					Datasets: []Dataset{
+						Dataset{
+							Data:                 []int{stats.Hosts[p.ByName("host")].Started, stats.Hosts[p.ByName("host")].Stopped},
+							BackgroundColor:      []string{"red", "green"},
+							HoverBackgroundColor: []string{"red", "green"},
+						},
 					},
-				},
-			}
-			raw, err := json.Marshal(data)
-			if err != nil {
-				return template.JS("")
-			}
-			return template.JS(raw)
-		},
-		"degraded": func(i interface{}) bool {
-			switch t := i.(type) {
-			case *host.Host:
-				return t.TimeSinceLastContacted() > 20*time.Second
-			}
-			return true
-		},
-		"host": func() *host.Host {
-			for _, host := range c.Hosts {
-				if host.ID == p.ByName("host") {
-					return host
+				}.JS("pie", "chart")
+			} else {
+				points := []int{}
+				labels := []string{}
+				for name, host := range stats.Hosts {
+					labels = append(labels, name)
+					points = append(points, host.Started)
 				}
+				return Data{
+					Labels: labels,
+					Datasets: []Dataset{
+						Dataset{
+							Data:                 points,
+							BackgroundColor:      colors,
+							HoverBackgroundColor: colors,
+						},
+					},
+				}.JS("polarArea", "chart")
 			}
-			return nil
 		},
-		"hosts": func() []*host.Host { return c.Hosts },
-		"service": func() *service.Service {
-			for _, host := range c.Hosts {
-				if p.ByName("host") == host.ID {
-					for _, service := range c.Services[host.ID] {
-						if service.ID == p.ByName("service") {
-							return service
-						}
-					}
-				}
-			}
-			return nil
-		},
+		"started":  func(hostID, serviceID string) bool { return pl.Started(hostID, serviceID) },
+		"host":     func() *host.Host { return c.Host(p.ByName("host")) },
+		"hosts":    func() []*host.Host { return c.Hosts },
+		"service":  func() *service.Service { return c.Service(p.ByName("host"), p.ByName("service")) },
 		"services": func() map[string][]*service.Service { return c.Services },
+		"selected": func(hostID, serviceID string) bool {
+			return p.ByName("host") == hostID && p.ByName("service") == serviceID
+		},
 	}
 }
 
 func (s *Server) HTML(w http.ResponseWriter, r *http.Request, p httprouter.Params) error {
 	resp, err := s.store.Query(&query.Query{Read: &query.Read{}})
+	if err != nil {
+		return err
+	}
+	pl, err := s.client.Processes()
 	if err != nil {
 		return err
 	}
@@ -107,7 +120,7 @@ func (s *Server) HTML(w http.ResponseWriter, r *http.Request, p httprouter.Param
 			return err
 		}
 		if tmpl == nil {
-			tmpl, err = template.New(name).Funcs(helpers(resp.Read.Cluster, p)).Parse(string(raw))
+			tmpl, err = template.New(name).Funcs(helpers(resp.Read.Cluster, pl, p)).Parse(string(raw))
 			if err != nil {
 				return err
 			}

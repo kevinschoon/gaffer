@@ -3,18 +3,21 @@ package server
 import (
 	"fmt"
 	"github.com/julienschmidt/httprouter"
+	"github.com/vektorlab/gaffer/client"
 	"github.com/vektorlab/gaffer/log"
 	"github.com/vektorlab/gaffer/store"
 	"github.com/vektorlab/gaffer/store/query"
 	"github.com/vektorlab/gaffer/user"
 	"go.uber.org/zap"
 	"net/http"
+	"strings"
 	"time"
 )
 
 type Server struct {
-	store store.Store
-	user  *user.User
+	store  store.Store
+	user   *user.User
+	client *client.Client
 }
 
 type HandleFunc func(http.ResponseWriter, *http.Request, httprouter.Params) error
@@ -40,14 +43,16 @@ func HandleWrapper(s *Server, fn HandleFunc) httprouter.Handle {
 			}
 			log.Log.Warn("server", zap.Error(err))
 		}
-		log.Log.Info(
-			"server",
-			zap.Duration("duration", time.Since(start)),
-			zap.String("url", r.URL.String()),
-			zap.String("method", r.Method),
-			zap.String("host", r.Header.Get("Host")),
-			zap.String("user-agent", r.Header.Get("User-Agent")),
-		)
+		if !strings.Contains(r.URL.String(), "/static") {
+			log.Log.Info(
+				"request",
+				zap.Duration("duration", time.Since(start)),
+				zap.String("url", r.URL.String()),
+				zap.String("method", r.Method),
+				zap.String("host", r.Header.Get("Host")),
+				zap.String("user-agent", r.Header.Get("User-Agent")),
+			)
+		}
 	}
 }
 
@@ -66,5 +71,5 @@ func Run(server *Server, pattern string) error {
 }
 
 func New(store store.Store, usr *user.User) *Server {
-	return &Server{store, usr}
+	return &Server{store, usr, client.NewClient(store)}
 }
