@@ -34,6 +34,7 @@ func (c Client) call(method string, req, resp interface{}) error {
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 	err = conn.Call(method, req, resp)
 	log.Log.Debug(
 		"rpc call",
