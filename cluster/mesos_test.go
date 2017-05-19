@@ -1,17 +1,16 @@
-package mesos
+package cluster
 
 import (
 	"encoding/json"
 	"github.com/stretchr/testify/assert"
-	"github.com/vektorlab/gaffer/cluster"
 	"github.com/vektorlab/gaffer/cluster/host"
 	"os"
 	"testing"
 	"time"
 )
 
-func newCluster() *cluster.Cluster {
-	return &cluster.Cluster{
+func newCluster() Cluster {
+	return Cluster{
 		ID: "test-cluster",
 		Hosts: []*host.Host{
 			&host.Host{

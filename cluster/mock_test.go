@@ -1,15 +1,14 @@
-package mock
+package cluster
 
 import (
 	"github.com/stretchr/testify/assert"
-	"github.com/vektorlab/gaffer/cluster"
 	"github.com/vektorlab/gaffer/cluster/host"
 	"testing"
 	"time"
 )
 
 var (
-	started = &cluster.Cluster{
+	started = Cluster{
 		ID: "test-cluster",
 		Hosts: []*host.Host{
 			&host.Host{

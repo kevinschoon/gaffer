@@ -1,12 +1,11 @@
-package mesos
+package cluster
 
 import (
 	"fmt"
-	"github.com/vektorlab/gaffer/cluster"
 	"math"
 )
 
-func ZKString(c *cluster.Cluster, port int) string {
+func ZKString(c Cluster, port int) string {
 	zkStr := "zk://"
 	for i, zk := range c.Hosts {
 		zkStr += fmt.Sprintf("%s:%d", zk.Hostname, port)

@@ -1,8 +1,7 @@
-package mock
+package cluster
 
 import (
 	"fmt"
-	"github.com/vektorlab/gaffer/cluster"
 	"github.com/vektorlab/gaffer/cluster/service"
 )
 
@@ -13,7 +12,7 @@ type Mock struct {
 	Duration int
 }
 
-func (m Mock) Update(other *cluster.Cluster) map[string][]*service.Service {
+func (m Mock) Update(other Cluster) map[string][]*service.Service {
 	services := map[string][]*service.Service{}
 	for _, host := range other.Hosts {
 		services[host.ID] = []*service.Service{

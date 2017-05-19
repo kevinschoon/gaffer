@@ -1,8 +1,7 @@
-package mesos
+package cluster
 
 import (
 	"fmt"
-	"github.com/vektorlab/gaffer/cluster"
 	"github.com/vektorlab/gaffer/cluster/service"
 )
 
@@ -12,7 +11,7 @@ type Mesos struct {
 	MasterEnv     []*service.Env `json:"master_env"`
 }
 
-func (m Mesos) Master(c *cluster.Cluster) *service.Service {
+func (m Mesos) Master(c Cluster) *service.Service {
 	svc := &service.Service{
 		ID:          "mesos-master",
 		Args:        []string{"mesos-master"},
@@ -37,7 +36,7 @@ func (m Mesos) Master(c *cluster.Cluster) *service.Service {
 	return svc
 }
 
-func (m Mesos) Zookeeper(c *cluster.Cluster, id int) *service.Service {
+func (m Mesos) Zookeeper(c Cluster, id int) *service.Service {
 	svc := &service.Service{
 		ID:    "zookeeper",
 		Args:  []string{"zkServer.sh", "start-foreground", "zoo.cfg"},
@@ -64,7 +63,7 @@ func (m Mesos) Zookeeper(c *cluster.Cluster, id int) *service.Service {
 	return svc
 }
 
-func (m Mesos) Update(c *cluster.Cluster) map[string][]*service.Service {
+func (m Mesos) Update(c Cluster) map[string][]*service.Service {
 	services := map[string][]*service.Service{}
 	for i, host := range c.Hosts {
 		services[host.ID] = []*service.Service{
