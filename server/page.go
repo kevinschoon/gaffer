@@ -22,7 +22,7 @@ var myPieChart = new Chart(ctx,{
 });
 `
 
-var colors = []string{"#696D7D", "#6F9283", "#8D9F87", "#CDC6A5", "#F0DCCA"}
+var colors = []string{"#2C3E50", "#18BC9C", "#E74C3C", "#F39C12", "#3498DB"}
 
 type Data struct {
 	Labels   []string  `json:"labels"`
@@ -64,8 +64,8 @@ func helpers(c *cluster.Cluster, pl cluster.ProcessList, p httprouter.Params) te
 					Datasets: []Dataset{
 						Dataset{
 							Data:                 []int{stats.Hosts[p.ByName("host")].Started, stats.Hosts[p.ByName("host")].Stopped},
-							BackgroundColor:      []string{"red", "green"},
-							HoverBackgroundColor: []string{"red", "green"},
+							BackgroundColor:      []string{"#18BC9C", "#E74C3C"},
+							HoverBackgroundColor: []string{"#18BC9C", "#E74C3C"},
 						},
 					},
 				}.JS("pie", "chart")

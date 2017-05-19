@@ -85,12 +85,18 @@ body {
 
 li.list-group-item.sub.active {
 background-color: #fff;
-border: 3px solid #ddd;
 }
 
-li> .fa {
-color: #bf3232;
+ul .fa {
 float: right;
+color: #18BC9C;
+}
+
+ul .warn {
+  color: #E74C3C;
+}
+
+.chart {
 }
 
 

@@ -25,7 +25,7 @@
 
 <body>
 
-<nav class="navbar navbar-inverse navbar-fixed-top">
+<nav class="navbar navbar-default navbar-fixed-top">
     <div class="container-fluid">
         <div class="navbar-header">
             <a class="navbar-brand" href="/gaffer">Gaffer</a>
@@ -37,18 +37,14 @@
   <div class="row">
     <div class="col-sm-3 col-md-2 sidebar">
       <ul class="nav nav-sidebar">
-        <center><h3><a href="/gaffer">{{ title }}</a></h3></center>
+        <center><h3><a href="/gaffer">Services</a></h3></center>
         <hr> 
       {{ range $host, $services := services }}
-        {{ if param "host" | eq $host }}
-        <li class="active"><a href="/gaffer/{{ $host }}">{{ $host }}</li> </a>
-        {{ else }}
-        <li><a href="/gaffer/{{ $host }}">{{ $host }} </a></li>
-        {{ end }}
         <ul class="list-group">
+          <li class="list-group-item"> <h5>{{ $host }}</h5> </li>
         {{ range $service := $services }}
           {{ if selected $host $service.ID }}
-          <li class="list-group-item sub active"> <a href="/gaffer/{{ $host }}/{{ $service.ID }}">{{ $service.ID }} </a> {{ if started $host $service.ID }} <i class="fa fa-check" aria-hidden="true"> </i> {{ else }} <i class="fa fa-exclamation-triangle warn" aria-hidden="true"></i> {{ end }} </li>
+          <li class="list-group-item active"> <a href="/gaffer/{{ $host }}/{{ $service.ID }}">{{ $service.ID }} </a> {{ if started $host $service.ID }} <i class="fa fa-check" aria-hidden="true"> </i> {{ else }} <i class="fa fa-exclamation-triangle warn" aria-hidden="true"></i> {{ end }} </li>
           {{ else }}
           <li class="list-group-item"><a href="/gaffer/{{ $host }}/{{ $service.ID }}">{{ $service.ID }} </a> {{ if started $host $service.ID }} <i class="fa fa-check" aria-hidden="true"> </i>{{ else }}<i class="fa fa-exclamation-triangle warn" aria-hidden="true"></i> {{ end }} </li>
           {{ end }}
@@ -81,9 +77,6 @@
 
 <footer class="footer">
   <div class="container">
-    <p class="text-muted">
-    <a href="https://github.com/vektorlab/gaffer">github</a>
-    </p>
   </div>
 </footer>
 
