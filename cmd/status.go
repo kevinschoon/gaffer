@@ -1,10 +1,11 @@
 package cmd
 
 import (
-	"fmt"
+	"encoding/json"
 	"github.com/jawher/mow.cli"
 	"github.com/vektorlab/gaffer/client"
 	"github.com/vektorlab/gaffer/store"
+	"os"
 )
 
 func statusCMD(sp string) func(*cli.Cmd) {
@@ -12,20 +13,9 @@ func statusCMD(sp string) func(*cli.Cmd) {
 		cmd.Action = func() {
 			db, err := store.NewStore(sp)
 			maybe(err)
-			c := client.NewClient(db)
-			hosts, err := c.Hosts()
+			processes, err := client.NewClient(db).Processes()
 			maybe(err)
-			for _, host := range hosts {
-				fmt.Println(host)
-			}
-			services, err := c.Services()
-			maybe(err)
-			for _, svc := range services {
-				fmt.Println(svc)
-			}
-			processes, err := c.Processes()
-			maybe(err)
-			fmt.Println(processes)
+			json.NewEncoder(os.Stdout).Encode(processes)
 		}
 	}
 }
