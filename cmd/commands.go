@@ -51,10 +51,8 @@ func Run() {
 		}
 	}
 	app.Command("server", "run the Gaffer HTTP server process", serverCMD(*store))
-	app.Command("status", "check the status of the cluster", statusCMD(*store))
 	app.Command("query", "perform queries", queryCMD(*store))
-	app.Command("template", "generate a cluster configuration", templateCMD())
-	app.Command("service", "supervise one or more a cluster services", serviceCMD(*store))
+	app.Command("supervise", "supervise one or more a cluster services", serviceCMD(*store))
 	app.Command("init", "initialize the a cluster sqlite store", initCMD())
 	maybe(app.Run(os.Args))
 }
