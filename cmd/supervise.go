@@ -9,7 +9,7 @@ import (
 func serviceCMD(sp string) func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
-			service = cmd.StringOpt("s service", "", "service names to supervise, e.g. svc1,svc2")
+			service = cmd.StringOpt("s service", "", "service to supervise")
 		)
 		cmd.Action = func() {
 			db, err := store.NewStore(sp)
