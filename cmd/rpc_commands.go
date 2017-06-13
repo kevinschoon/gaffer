@@ -8,18 +8,9 @@ import (
 	"github.com/jawher/mow.cli"
 	"github.com/vektorlab/gaffer/cluster"
 	"github.com/vektorlab/gaffer/supervisor"
-	"io/ioutil"
 	"os"
 	"time"
 )
-
-func getConfig(path string) *cluster.Config {
-	raw, err := ioutil.ReadFile(path)
-	maybe(err)
-	config := &cluster.Config{}
-	maybe(json.Unmarshal(raw, config))
-	return config
-}
 
 func toStdout(ch <-chan supervisor.Response) {
 	writer := uilive.New()
@@ -79,13 +70,16 @@ func parseFilters(hosts []string, ports []int, all bool) []cluster.Filter {
 func statusCMD(asJSON *bool) func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
-			path  = cmd.StringOpt("c config", "gaffer.json", "gaffer cluster config file")
-			hosts = cmd.StringsOpt("h host", []string{}, "filter by hostname")
-			ports = cmd.IntsOpt("p port", []int{}, "filter by port number")
-			all   = cmd.BoolOpt("a all", true, "match all hosts")
+			pattern = cmd.StringOpt("c config", "file://gaffer.json", "gaffer config source")
+			hosts   = cmd.StringsOpt("h host", []string{}, "filter by hostname")
+			ports   = cmd.IntsOpt("p port", []int{}, "filter by port number")
+			all     = cmd.BoolOpt("a all", true, "match all hosts")
 		)
 		cmd.Action = func() {
-			cfg := getConfig(*path)
+			source, err := cluster.NewSource(*pattern)
+			maybe(err)
+			cfg, err := source.Get()
+			maybe(err)
 			filters := parseFilters(*hosts, *ports, *all)
 			mux := supervisor.ClientMux{supervisor.Clients(cfg.Hosts.Filter(filters...))}
 			if *asJSON {
@@ -100,15 +94,18 @@ func statusCMD(asJSON *bool) func(*cli.Cmd) {
 func applyCMD(asJSON *bool) func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
-			name  = cmd.StringArg("SERVICE", "", "service to apply")
-			path  = cmd.StringOpt("c config", "gaffer.json", "gaffer cluster config file")
-			hosts = cmd.StringsOpt("h host", []string{}, "filter by hostname")
-			ports = cmd.IntsOpt("p port", []int{}, "filter by port number")
-			all   = cmd.BoolOpt("a all", false, "match all hosts")
+			name    = cmd.StringArg("SERVICE", "", "service to apply")
+			pattern = cmd.StringOpt("c config", "file://gaffer.json", "gaffer config source")
+			hosts   = cmd.StringsOpt("h host", []string{}, "filter by hostname")
+			ports   = cmd.IntsOpt("p port", []int{}, "filter by port number")
+			all     = cmd.BoolOpt("a all", false, "match all hosts")
 		)
 		cmd.Spec = "[OPTIONS] SERVICE"
 		cmd.Action = func() {
-			cfg := getConfig(*path)
+			source, err := cluster.NewSource(*pattern)
+			maybe(err)
+			cfg, err := source.Get()
+			maybe(err)
 			svc := cfg.Services.Find(*name)
 			if svc == nil {
 				maybe(fmt.Errorf("no service named %s", *name))
@@ -127,13 +124,16 @@ func applyCMD(asJSON *bool) func(*cli.Cmd) {
 func restartCMD(asJSON *bool) func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
-			path  = cmd.StringOpt("c config", "gaffer.json", "gaffer cluster config file")
-			hosts = cmd.StringsOpt("h host", []string{}, "filter by hostname")
-			ports = cmd.IntsOpt("p port", []int{}, "filter by port number")
-			all   = cmd.BoolOpt("a all", false, "match all hosts")
+			pattern = cmd.StringOpt("c config", "file://gaffer.json", "gaffer config source")
+			hosts   = cmd.StringsOpt("h host", []string{}, "filter by hostname")
+			ports   = cmd.IntsOpt("p port", []int{}, "filter by port number")
+			all     = cmd.BoolOpt("a all", false, "match all hosts")
 		)
 		cmd.Action = func() {
-			cfg := getConfig(*path)
+			source, err := cluster.NewSource(*pattern)
+			maybe(err)
+			cfg, err := source.Get()
+			maybe(err)
 			filters := parseFilters(*hosts, *ports, *all)
 			mux := supervisor.ClientMux{supervisor.Clients(cfg.Hosts.Filter(filters...))}
 			if *asJSON {
