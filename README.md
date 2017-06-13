@@ -12,6 +12,6 @@ It is designed to control daemon processes like those that compose [Apache Mesos
 
 ## TODO
 
-    * Authentication
-    * S3 Source
-    * Documentation
+  * Authentication
+  * S3 Source
+  * Documentation
