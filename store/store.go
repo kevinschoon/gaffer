@@ -1,55 +1,51 @@
 package store
 
 import (
-	"fmt"
-	"github.com/vektorlab/gaffer/store/http"
-	"github.com/vektorlab/gaffer/store/query"
-	"github.com/vektorlab/gaffer/store/sql"
-	"github.com/vektorlab/gaffer/user"
-	"net/url"
-	"strings"
+	"encoding/json"
+	"github.com/boltdb/bolt"
+	"github.com/vektorlab/gaffer/cluster"
+	"time"
 )
 
-type Store interface {
-	Query(*query.Query) (*query.Response, error)
-	Close() error
+type Store struct {
+	db *bolt.DB
 }
 
-var (
-	_ Store = &sql.SQLStore{}
-	_ Store = &http.Client{}
-)
+func (s *Store) Close() error { return s.db.Close() }
 
-// NewStore will return a new store by evaluating the pattern.
-// We support the following formats:
-// HTTP store:
-// http://[user:pass]@hostname[:port]
-// SQL Store:
-// sqlite:///gaffer.db
-func NewStore(pattern string) (Store, error) {
-	switch {
-	case strings.Contains(pattern, "http://") || strings.Contains(pattern, "https://"):
-		return fromHTTP(pattern)
-	case strings.Contains(pattern, "sqlite://"):
-		return fromSQLite(strings.Replace(pattern, "sqlite://", "", -1))
+func (s *Store) GetService() (*cluster.Service, error) {
+	var svc *cluster.Service
+	err := s.db.View(func(tx *bolt.Tx) error {
+		raw := tx.Bucket([]byte("store")).Get([]byte("service"))
+		if len(raw) == 0 {
+			return nil
+		}
+		s := &cluster.Service{}
+		err := json.Unmarshal(raw, s)
+		svc = s
+		return err
+	})
+	return svc, err
+}
+
+func (s *Store) SetService(svc *cluster.Service) error {
+	raw, err := json.Marshal(svc)
+	if err != nil {
+		return err
 	}
-	return nil, fmt.Errorf("cannot read pattern %s", pattern)
+	return s.db.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket([]byte("store")).Put([]byte("service"), raw)
+	})
 }
 
-func fromHTTP(pattern string) (Store, error) {
-	parsed, err := url.Parse(pattern)
+func New(path string) (*Store, error) {
+	db, err := bolt.Open(path, 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
 		return nil, err
 	}
-	var u *user.User
-	if parsed.User != nil {
-		name := parsed.User.Username()
-		token, _ := parsed.User.Password()
-		u = &user.User{name, token}
-	}
-	return http.New(parsed.String(), u), nil
-}
-
-func fromSQLite(pattern string) (Store, error) {
-	return sql.New(pattern)
+	store := &Store{db: db}
+	return store, db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("store"))
+		return err
+	})
 }

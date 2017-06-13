@@ -1,4 +1,15 @@
-package service
+package cluster
+
+type Services []*Service
+
+func (services Services) Find(name string) *Service {
+	for _, svc := range services {
+		if svc.ID == name {
+			return svc
+		}
+	}
+	return nil
+}
 
 // Service is a configurable process
 // that must remain running
@@ -7,8 +18,6 @@ type Service struct {
 	Args        []string `json:"args"`
 	Environment []*Env   `json:"environment"`
 	Files       []*File  `json:"files"`
-	Port        int      `json:"port"`
-	Registered  bool     `json:"registered"`
 }
 
 func (s Service) Env(name string) *Env {

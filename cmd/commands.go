@@ -25,7 +25,6 @@ func Run() {
 		json  = app.BoolOpt("json", false, "enables json log output")
 		level = app.StringOpt("level", "INFO", "specify logging level [ERROR, WARN, INFO, DEBUG]")
 		debug = app.BoolOpt("d debug", false, "output debug information")
-		store = app.StringOpt("s store", "sqlite://gaffer.db", "store configuration pattern")
 	)
 	app.Before = func() {
 		switch strings.ToUpper(*level) {
@@ -50,9 +49,10 @@ func Run() {
 			log.Debug()
 		}
 	}
-	app.Command("server", "run the Gaffer HTTP server process", serverCMD(*store))
-	app.Command("query", "perform queries", queryCMD(*store))
-	app.Command("supervise", "supervise one or more a cluster services", serviceCMD(*store))
-	app.Command("init", "initialize the a cluster sqlite store", initCMD())
+	app.Command("supervise", "supervise a Gaffer service", superviseCMD())
+	app.Command("status", "print remote cluster services", statusCMD(json))
+	app.Command("apply", "apply a service configuration", applyCMD(json))
+	app.Command("restart", "restart remote services", restartCMD(json))
+
 	maybe(app.Run(os.Args))
 }

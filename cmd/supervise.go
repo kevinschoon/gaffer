@@ -6,15 +6,19 @@ import (
 	"github.com/vektorlab/gaffer/supervisor"
 )
 
-func serviceCMD(sp string) func(*cli.Cmd) {
+func superviseCMD() func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
-			service = cmd.StringOpt("s service", "", "service to supervise")
+			dbPath = cmd.StringOpt("d db", "gaffer.db", "path to service db")
+			token  = cmd.StringOpt("t token", "", "secret token")
+			port   = cmd.IntOpt("p port", 10000, "port to listen on")
 		)
 		cmd.Action = func() {
-			db, err := store.NewStore(sp)
+			db, err := store.New(*dbPath)
 			maybe(err)
-			maybe(supervisor.Launch(db, *service))
+			sup, err := supervisor.NewSupervisor(supervisor.Token(*token), db)
+			maybe(err)
+			maybe(supervisor.Launch(sup, *port))
 		}
 	}
 }

@@ -2,23 +2,26 @@ package supervisor
 
 import (
 	"bufio"
-	"github.com/vektorlab/gaffer/cluster/service"
+	"fmt"
+	"github.com/vektorlab/gaffer/cluster"
 	"github.com/vektorlab/gaffer/log"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"syscall"
+	"time"
 )
 
 const TempPath = "/tmp"
 
 type Process struct {
-	Cmd *exec.Cmd
-	svc *service.Service
+	Cmd     *exec.Cmd `json:"-"`
+	svc     *cluster.Service
+	started time.Time
 }
 
-func NewProcess(svc *service.Service) (*Process, error) {
+func NewProcess(svc *cluster.Service) (*Process, error) {
 	proc := &Process{Cmd: exec.Command(svc.Args[0], svc.Args[1:]...), svc: svc}
 
 	tmp, err := ioutil.TempDir(TempPath, "gaffer")
@@ -86,6 +89,7 @@ func (p *Process) Start() error {
 	if err := p.Cmd.Start(); err != nil {
 		return err
 	}
+	p.started = time.Now()
 
 	log.Log.Info(
 		"creating new service process",
@@ -96,7 +100,7 @@ func (p *Process) Start() error {
 	go func() {
 		err := p.Cmd.Wait()
 		if err != nil {
-			log.Log.Error("process", zap.Error(err))
+			log.Log.Info(fmt.Sprintf("process ended: %s", err.Error()))
 		}
 	}()
 
@@ -105,7 +109,10 @@ func (p *Process) Start() error {
 
 func (p *Process) Stop() error {
 	//processGroup := 0 - p.Cmd.Process.Pid
-	return syscall.Kill(p.Pid(), syscall.SIGKILL)
+	if p.Running() {
+		return syscall.Kill(p.Pid(), syscall.SIGKILL)
+	}
+	return nil
 }
 
 func (p *Process) Restart() error {
@@ -123,7 +130,10 @@ func (p *Process) Restart() error {
 
 func (p *Process) Running() bool {
 	pid := p.Pid()
-	return pid != 0 && syscall.Kill(pid, syscall.Signal(0)) == nil
+	if pid == 0 {
+		return false
+	}
+	return syscall.Kill(pid, syscall.Signal(0)) == nil
 }
 
 func (p *Process) Pid() int {
@@ -132,3 +142,5 @@ func (p *Process) Pid() int {
 	}
 	return p.Cmd.Process.Pid
 }
+
+func (p *Process) Uptime() time.Duration { return time.Since(p.started) }

@@ -3,17 +3,17 @@ package supervisor
 import (
 	"fmt"
 	"github.com/cenkalti/backoff"
-	"github.com/vektorlab/gaffer/cluster/host"
-	"github.com/vektorlab/gaffer/cluster/service"
+	"github.com/vektorlab/gaffer/cluster"
 	"github.com/vektorlab/gaffer/log"
 	"github.com/vektorlab/gaffer/store"
 	"go.uber.org/zap"
 	"net"
 	"net/http"
 	"net/rpc"
-	"os"
 	"time"
 )
+
+type Token string
 
 const PollTime = 200 * time.Millisecond
 
@@ -25,42 +25,68 @@ const PollTime = 200 * time.Millisecond
 // seconds it will return an error and revert
 // to the previous configuration.
 type Supervisor struct {
-	svc      *service.Service
+	token    Token
+	db       *store.Store
+	svc      *cluster.Service
 	proc     *Process
 	started  time.Time
 	shutdown chan bool
-	restart  chan struct {
+	status   chan struct {
+		proc chan *Process
+	}
+	restart chan struct {
 		err chan error
 	}
 	update chan struct {
-		service *service.Service
+		service *cluster.Service
 		err     chan error
 	}
 }
 
-func NewSupervisor(seed *service.Service) (*Supervisor, error) {
-	proc, err := NewProcess(seed)
+func NewSupervisor(token Token, db *store.Store) (*Supervisor, error) {
+	seed, err := db.GetService()
 	if err != nil {
 		return nil, err
 	}
+	var proc *Process
+	if seed != nil {
+		p, err := NewProcess(seed)
+		if err != nil {
+			return nil, err
+		}
+		proc = p
+	}
 	return &Supervisor{
+		db:       db,
+		token:    token,
 		svc:      seed,
 		proc:     proc,
 		shutdown: make(chan bool),
+		status: make(chan struct {
+			proc chan *Process
+		}),
 		restart: make(chan struct {
 			err chan error
 		}),
 		update: make(chan struct {
-			service *service.Service
+			service *cluster.Service
 			err     chan error
 		}),
 	}, nil
 }
 
-func (s *Supervisor) callUpdate(svc *service.Service) error {
+func (s *Supervisor) callStatus() *Process {
+	proc := make(chan *Process)
+	s.status <- struct {
+		proc chan *Process
+	}{proc}
+	return <-proc
+}
+
+func (s *Supervisor) callUpdate(svc *cluster.Service) error {
 	err := make(chan error)
 	s.update <- struct {
-		service *service.Service
+		service *cluster.Service
 		err     chan error
 	}{svc, err}
 	return <-err
@@ -92,10 +118,13 @@ loop:
 		case e := <-s.restart:
 			if s.proc == nil {
 				e.err <- fmt.Errorf("no process configured")
+			} else {
+				e.err <- s.proc.Restart()
 			}
-			e.err <- s.proc.Restart()
 		case u := <-s.update:
 			u.err <- s.replace(u.service)
+		case p := <-s.status:
+			p.proc <- s.proc
 		}
 	}
 }
@@ -155,10 +184,14 @@ func (s *Supervisor) ensureRunning() {
 // process with a new service configuration.
 // If the new configuration causes the process
 // to fail it will revert to the old configuration.
-func (s *Supervisor) replace(svc *service.Service) error {
+func (s *Supervisor) replace(svc *cluster.Service) error {
 	// The existing process configuration
 	previous := s.proc
 	revert := func() {
+		if previous == nil {
+			// No previous process
+			return
+		}
 		if !previous.Running() {
 			err := previous.Start()
 			if err != nil {
@@ -177,48 +210,51 @@ func (s *Supervisor) replace(svc *service.Service) error {
 			}
 		}
 	}
+	var proc *Process
 	// Create a new process and tmp path
-	proc, err := NewProcess(svc)
-	if err != nil {
-		return err
+	if len(svc.Args) > 0 {
+		p, err := NewProcess(svc)
+		if err != nil {
+			return err
+		}
+		proc = p
 	}
 	// A Process was already configured
 	if s.proc != nil {
 		// Process is actively running
 		if s.proc.Running() {
 			// Attempt to stop the active process
-			err = s.proc.Stop()
+			err := s.proc.Stop()
 			if err != nil {
 				return err
 			}
 		}
-		// No process currently configured
-	} else {
-		s.proc = proc
-		return s.proc.Start()
 	}
 	// Attempt to start the process
-	err = proc.Start()
-	if err != nil {
-		revert()
-		return err
-	}
-	// TODO: Perhaps there is a better way
-	// to wait for the process to have a
-	// chance to launch. Poll the process
-	// once per second for five seconds to
-	// ensure it is started and is not is
-	// not flapping.
-	for i := 0; i < 5; i++ {
-		time.Sleep(1 * time.Second)
-		if !proc.Running() {
+	if proc != nil {
+		err := proc.Start()
+		if err != nil {
 			revert()
-			return fmt.Errorf("process failed to start with new configuration")
+			return err
+		}
+		// TODO: Perhaps there is a better way
+		// to wait for the process to have a
+		// chance to launch. Poll the process
+		// once per second for five seconds to
+		// ensure it is started and is not is
+		// not flapping.
+		for i := 0; i < 5; i++ {
+			time.Sleep(1 * time.Second)
+			if !proc.Running() {
+				revert()
+				return fmt.Errorf("process failed to start with new configuration")
+			}
 		}
 	}
 	// Finally replace the old process and service configuration
 	s.proc = proc
 	s.svc = svc
+	s.db.SetService(svc)
 	log.Log.Info(
 		svc.ID,
 		zap.String("message", "process updated successfully"),
@@ -230,108 +266,69 @@ func (s *Supervisor) replace(svc *service.Service) error {
 
 type StatusRequest struct{}
 type StatusResponse struct {
-	Process *os.Process `json:"process"`
+	Pid     int              `json:"pid"`
+	Uptime  time.Duration    `json:"uptime"`
+	Service *cluster.Service `json:"service"`
 }
 
-func (s Supervisor) Status(req StatusRequest, resp *StatusResponse) error {
-	if s.proc == nil {
-		return fmt.Errorf("process is not running")
+func (s *Supervisor) Status(req StatusRequest, resp *StatusResponse) error {
+	if proc := s.callStatus(); proc != nil {
+		resp.Pid = proc.Pid()
+		resp.Uptime = proc.Uptime()
+		resp.Service = proc.svc
 	}
-	resp.Process = s.proc.Cmd.Process
-	//resp.Pid = s.proc.Pid()
-	//resp.Uptime = time.Since(s.started)
 	return nil
 }
 
 type RestartRequest struct{}
-type RestartResponse struct{ Process *os.Process }
+type RestartResponse struct {
+	Pid    int           `json:"pid"`
+	Uptime time.Duration `json:"uptime"`
+}
 
 func (s Supervisor) Restart(req RestartRequest, resp *RestartResponse) error {
 	err := s.callRestart()
 	if err != nil {
 		return err
 	}
-	resp.Process = s.proc.Cmd.Process
+	if proc := s.callStatus(); proc != nil {
+		resp.Pid = proc.Pid()
+		resp.Uptime = proc.Uptime()
+	}
 	return nil
 }
 
-type UpdateRequest struct{ Service *service.Service }
-type UpdateResponse struct{ Process *os.Process }
+type UpdateRequest struct{ Service *cluster.Service }
+type UpdateResponse struct {
+	Pid    int           `json:"pid"`
+	Uptime time.Duration `json:"duration"`
+}
 
 func (s Supervisor) Update(req UpdateRequest, resp *UpdateResponse) error {
 	err := s.callUpdate(req.Service)
 	if err != nil {
 		return err
 	}
-	resp.Process = s.proc.Cmd.Process
+	if proc := s.callStatus(); proc != nil {
+		resp.Pid = proc.Pid()
+		resp.Uptime = proc.Uptime()
+	}
 	return nil
 }
 
-type Command struct {
-	update  *service.Service
-	restart bool
-}
-
-func Launch(db store.Store, id string) error {
-	var (
-		self       *host.Host
-		svc        *service.Service
-		supervisor *Supervisor
-	)
-	register := func() error {
-		h, s, err := store.Register(db, id)
-		if err != nil {
-			return err
-		}
-		self = h
-		svc = s
-		// Attempt to configure the initial service
-		// based on the configuration in the database.
-		spv, err := NewSupervisor(svc)
-		if err != nil {
-			return err
-		}
-		supervisor = spv
-		// Successfully registered
-		return nil
-	}
-	// Attempt to register continuously
-	err := backoff.RetryNotify(
-		register,
-		backoff.NewConstantBackOff(5000*time.Millisecond),
-		func(err error, d time.Duration) {
-			log.Log.Info(
-				id,
-				zap.String("message", "service registration failed"),
-				zap.Duration("duration", d),
-				zap.Error(err),
-			)
-		},
-	)
-	if err != nil {
-		return err
-	}
-	log.Log.Info(
-		id,
-		zap.String("message", "registration complete"),
-		zap.Any("host", self),
-		zap.Any("service", svc),
-	)
+func Launch(supervisor *Supervisor, port int) error {
 	go supervisor.monitor()
 	server := rpc.NewServer()
-	err = server.Register(supervisor)
+	err := server.Register(supervisor)
 	if err != nil {
 		return err
 	}
 	server.HandleHTTP("/", "/debug")
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", svc.Port))
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return err
 	}
-	log.Log.Info(
-		svc.ID,
-		zap.String("message", fmt.Sprintf("supervisor listening @0.0.0.0:%d", svc.Port)),
-	)
+	log.Log.Info(fmt.Sprintf("gaffer is listening @0.0.0.0:%d", port))
 	err = http.Serve(listener, nil)
 	supervisor.shutdown <- true
 	return err
