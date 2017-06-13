@@ -54,6 +54,7 @@ func Run() {
 	app.Command("apply", "apply a service configuration", applyCMD(json))
 	app.Command("restart", "restart remote services", restartCMD(json))
 	app.Command("config", "modify a cluster config", configCMD(json))
+	app.Command("server", "run a gaffer HTTP proxy and UI", serverCMD())
 
 	maybe(app.Run(os.Args))
 }

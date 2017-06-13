@@ -1,5 +1,7 @@
 package server
 
+/*
+
 import (
 	"encoding/json"
 	"fmt"
@@ -177,3 +179,4 @@ func (s *Server) Static(w http.ResponseWriter, r *http.Request, p httprouter.Par
 	_, err = w.Write(data)
 	return err
 }
+*/

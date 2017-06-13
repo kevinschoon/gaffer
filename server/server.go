@@ -3,10 +3,8 @@ package server
 import (
 	"fmt"
 	"github.com/julienschmidt/httprouter"
-	"github.com/vektorlab/gaffer/client"
+	"github.com/vektorlab/gaffer/cluster"
 	"github.com/vektorlab/gaffer/log"
-	"github.com/vektorlab/gaffer/store"
-	"github.com/vektorlab/gaffer/store/query"
 	"github.com/vektorlab/gaffer/user"
 	"go.uber.org/zap"
 	"net/http"
@@ -15,9 +13,8 @@ import (
 )
 
 type Server struct {
-	store  store.Store
+	source cluster.Source
 	user   *user.User
-	client *client.Client
 }
 
 type HandleFunc func(http.ResponseWriter, *http.Request, httprouter.Params) error
@@ -36,8 +33,6 @@ func HandleWrapper(s *Server, fn HandleFunc) httprouter.Handle {
 		err := fn(w, r, p)
 		if err != nil {
 			switch err.(type) {
-			case query.ErrInvalidQuery:
-				http.Error(w, err.Error(), http.StatusBadRequest)
 			default:
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
@@ -61,15 +56,12 @@ func Run(server *Server, pattern string) error {
 	router.GET("/", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		http.Redirect(w, r, "/gaffer", 302)
 	})
-	router.POST("/1/query", HandleWrapper(server, server.Query))
-	router.GET("/gaffer", HandleWrapper(server, server.HTML))
-	router.GET("/gaffer/:host", HandleWrapper(server, server.HTML))
-	router.GET("/gaffer/:host/:service", HandleWrapper(server, server.HTML))
-	router.GET("/static/:dir/:file", HandleWrapper(server, server.Static))
+	router.GET("/get", HandleWrapper(server, server.Get))
+	router.POST("/set", HandleWrapper(server, server.Set))
 	log.Log.Info("server", zap.String("msg", fmt.Sprintf("Listening @%s", pattern)))
 	return http.ListenAndServe(pattern, router)
 }
 
-func New(store store.Store, usr *user.User) *Server {
-	return &Server{store, usr, client.NewClient(store)}
+func New(source cluster.Source, u *user.User) *Server {
+	return &Server{source: source, user: u}
 }
