@@ -12,6 +12,4 @@ docker:
 	fi
 	$(DOCKER) go-bindata -pkg server -o server/bindata.go www/...
 	$(DOCKER) go build -o ./bin/gaffer
-	docker build -t $(DOCKER_IMAGE) .
-	docker build -t $(DOCKER_IMAGE) -f docker/Dockerfile.mesos .
-	docker build -t $(DOCKER_IMAGE):zookeeper -f docker/Dockerfile.zookeeper .
+	docker build -t $(DOCKER_IMAGE):gaffer .

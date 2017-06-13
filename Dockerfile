@@ -1,13 +1,8 @@
-FROM quay.io/vektorcloud/base:3.5
+FROM quay.io/vektorcloud/base:3.6
 
 COPY bin/gaffer /bin/
-COPY entrypoint.sh /
 
-RUN mkdir /gaffer \
-  && apk add --no-cache sqlite
-
-WORKDIR /gaffer
 VOLUME /gaffer
+WORKDIR /gaffer
 
 CMD ["gaffer"]
-ENTRYPOINT ["/entrypoint.sh"]
