@@ -4,16 +4,7 @@ import (
 	"regexp"
 )
 
-type Pattern struct {
-	Regexp *regexp.Regexp
-}
-
-func (p Pattern) Match(host *Host) bool {
-	if p.Regexp != nil {
-		return p.Regexp.MatchString(host.Name)
-	}
-	return false
-}
+type Filter func(*Host) bool
 
 type Hosts []*Host
 
@@ -22,18 +13,32 @@ type Host struct {
 	Port int    `json:"port"`
 }
 
-func (hosts Hosts) Match(pattern Pattern) Hosts {
+func (hosts Hosts) Filter(filters ...Filter) Hosts {
 	matched := Hosts{}
+loop:
 	for _, host := range hosts {
-		if pattern.Match(host) {
-			matched = append(matched, host)
+		for _, filter := range filters {
+			if filter(host) {
+				matched = append(matched, host)
+				continue loop
+			}
 		}
 	}
 	return matched
 }
 
-func ByName(pattern string) Pattern {
-	return Pattern{
-		Regexp: regexp.MustCompile(pattern),
+func Any() Filter {
+	return func(*Host) bool { return true }
+}
+
+func ByName(pattern string) Filter {
+	return func(h *Host) bool {
+		return regexp.MustCompile(pattern).MatchString(h.Name)
+	}
+}
+
+func ByPort(p int) Filter {
+	return func(h *Host) bool {
+		return h.Port == p
 	}
 }

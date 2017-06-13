@@ -61,15 +61,33 @@ func toStdoutJSON(ch <-chan supervisor.Response) {
 	}
 }
 
+func parseFilters(hosts []string, ports []int, all bool) []cluster.Filter {
+	filters := []cluster.Filter{}
+	if all {
+		filters = append(filters, cluster.Any())
+		return filters
+	}
+	for _, name := range hosts {
+		filters = append(filters, cluster.ByName(name))
+	}
+	for _, port := range ports {
+		filters = append(filters, cluster.ByPort(port))
+	}
+	return filters
+}
+
 func statusCMD(asJSON *bool) func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
-			path    = cmd.StringOpt("c config", "gaffer.json", "gaffer cluster config file")
-			pattern = cmd.StringOpt("p pattern", ".*", "regular expression matching hostname")
+			path  = cmd.StringOpt("c config", "gaffer.json", "gaffer cluster config file")
+			hosts = cmd.StringsOpt("h host", []string{}, "filter by hostname")
+			ports = cmd.IntsOpt("p port", []int{}, "filter by port number")
+			all   = cmd.BoolOpt("a all", true, "match all hosts")
 		)
 		cmd.Action = func() {
 			cfg := getConfig(*path)
-			mux := supervisor.ClientMux{supervisor.Clients(cfg.Hosts.Match(cluster.ByName(*pattern)))}
+			filters := parseFilters(*hosts, *ports, *all)
+			mux := supervisor.ClientMux{supervisor.Clients(cfg.Hosts.Filter(filters...))}
 			if *asJSON {
 				toStdoutJSON(mux.Status())
 			} else {
@@ -82,9 +100,11 @@ func statusCMD(asJSON *bool) func(*cli.Cmd) {
 func applyCMD(asJSON *bool) func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
-			name    = cmd.StringArg("SERVICE", "", "service to apply")
-			path    = cmd.StringOpt("c config", "gaffer.json", "gaffer cluster config file")
-			pattern = cmd.StringOpt("p pattern", ".*", "regular expression matching hostname")
+			name  = cmd.StringArg("SERVICE", "", "service to apply")
+			path  = cmd.StringOpt("c config", "gaffer.json", "gaffer cluster config file")
+			hosts = cmd.StringsOpt("h host", []string{}, "filter by hostname")
+			ports = cmd.IntsOpt("p port", []int{}, "filter by port number")
+			all   = cmd.BoolOpt("a all", false, "match all hosts")
 		)
 		cmd.Spec = "[OPTIONS] SERVICE"
 		cmd.Action = func() {
@@ -93,7 +113,8 @@ func applyCMD(asJSON *bool) func(*cli.Cmd) {
 			if svc == nil {
 				maybe(fmt.Errorf("no service named %s", *name))
 			}
-			mux := supervisor.ClientMux{supervisor.Clients(cfg.Hosts.Match(cluster.ByName(*pattern)))}
+			filters := parseFilters(*hosts, *ports, *all)
+			mux := supervisor.ClientMux{supervisor.Clients(cfg.Hosts.Filter(filters...))}
 			if *asJSON {
 				toStdoutJSON(mux.Apply(svc))
 			} else {
@@ -106,12 +127,15 @@ func applyCMD(asJSON *bool) func(*cli.Cmd) {
 func restartCMD(asJSON *bool) func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
-			path    = cmd.StringOpt("c config", "gaffer.json", "gaffer cluster config file")
-			pattern = cmd.StringOpt("p pattern", ".*", "regular expression matching hostname")
+			path  = cmd.StringOpt("c config", "gaffer.json", "gaffer cluster config file")
+			hosts = cmd.StringsOpt("h host", []string{}, "filter by hostname")
+			ports = cmd.IntsOpt("p port", []int{}, "filter by port number")
+			all   = cmd.BoolOpt("a all", false, "match all hosts")
 		)
 		cmd.Action = func() {
 			cfg := getConfig(*path)
-			mux := supervisor.ClientMux{supervisor.Clients(cfg.Hosts.Match(cluster.ByName(*pattern)))}
+			filters := parseFilters(*hosts, *ports, *all)
+			mux := supervisor.ClientMux{supervisor.Clients(cfg.Hosts.Filter(filters...))}
 			if *asJSON {
 				toStdoutJSON(mux.Restart())
 			} else {
