@@ -53,6 +53,7 @@ func Run() {
 	app.Command("status", "print remote cluster services", statusCMD(json))
 	app.Command("apply", "apply a service configuration", applyCMD(json))
 	app.Command("restart", "restart remote services", restartCMD(json))
+	app.Command("config", "modify a cluster config", configCMD(json))
 
 	maybe(app.Run(os.Args))
 }
