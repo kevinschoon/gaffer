@@ -53,11 +53,10 @@ func HandleWrapper(s *Server, fn HandleFunc) httprouter.Handle {
 
 func Run(server *Server, pattern string) error {
 	router := httprouter.New()
-	router.GET("/", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		http.Redirect(w, r, "/gaffer", 302)
-	})
+	router.GET("/", HandleWrapper(server, server.HTML))
 	router.GET("/get", HandleWrapper(server, server.Get))
 	router.POST("/set", HandleWrapper(server, server.Set))
+	router.GET("/static/:dir/:file", HandleWrapper(server, server.Static))
 	log.Log.Info("server", zap.String("msg", fmt.Sprintf("Listening @%s", pattern)))
 	return http.ListenAndServe(pattern, router)
 }

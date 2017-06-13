@@ -10,7 +10,7 @@
     <meta name="author" content="vektor.nyc">
     <!--<link rel="icon" href="../../favicon.ico">-->
 
-    <title>gaffer</title>
+    <title>{{ title }}</title>
 
     <!-- Bootstrap core CSS -->
     <link href="/static/css/bootstrap.min.css" rel="stylesheet">
@@ -35,42 +35,42 @@
 
 <div class="container-fluid">
   <div class="row">
-    <div class="col-sm-3 col-md-2 sidebar">
-      <ul class="nav nav-sidebar">
-        <center><h3><a href="/gaffer">Services</a></h3></center>
-        <hr> 
-      {{ range $host, $services := services }}
-        <ul class="list-group">
-          <li class="list-group-item"> <h5>{{ $host }}</h5> </li>
-        {{ range $service := $services }}
-          {{ if selected $host $service.ID }}
-          <li class="list-group-item active"> <a href="/gaffer/{{ $host }}/{{ $service.ID }}">{{ $service.ID }} </a> {{ if started $host $service.ID }} <i class="fa fa-check" aria-hidden="true"> </i> {{ else }} <i class="fa fa-exclamation-triangle warn" aria-hidden="true"></i> {{ end }} </li>
-          {{ else }}
-          <li class="list-group-item"><a href="/gaffer/{{ $host }}/{{ $service.ID }}">{{ $service.ID }} </a> {{ if started $host $service.ID }} <i class="fa fa-check" aria-hidden="true"> </i>{{ else }}<i class="fa fa-exclamation-triangle warn" aria-hidden="true"></i> {{ end }} </li>
-          {{ end }}
-        {{ end }}
-        </ul>
-      {{ end }}
-      </ul>
-    </div>
     <!--main -->
-    <div class="col-md-offset-2 main">
-      <!-- overview -->
-      {{ if home }}
-        {{ block "overview" . }}{{ end }}
+      <div class="panel panel-default">
+  <!-- Default panel contents -->
+  <div class="panel-heading">Services</div>
+  <!-- Table -->
+  <table class="table">
+    <tr>
+      <th> HOST </th>
+      <th> PORT </th>
+      <th> PID </th>
+      <th> UPTIME </th>
+      <th> MD5 </th>
+      <th> ERROR </th>
+    </tr>
+    {{ range statuses }}
+    {{ if .Error }}
+    <tr class="danger">
+    {{ else }}
+    <tr class="success">
+    {{ end }}
+      <td>{{ .Host.Name }}</td>
+      <td>{{ .Host.Port }}</td>
+      {{ if .Status }}
+      <td>{{ .Status.Pid }}</td>
+      <td>{{ .Status.Uptime }}</td>
+      <td>{{ .Status.Hash }}</td>
+      {{ else }}
+      <td>??????????<td>
+      <td>??????????<td>
+      <td>????<td>
       {{ end }}
-      <hr>
-      <!-- end overview -->
-      {{ if param "host" }}
-        <!-- host -->
-        {{ block "host" . }} {{ end }}
-        <!-- end host -->
-      {{ end }}
-      {{ if param "service" }}
-        <!-- service -->
-        {{ block "service" . }} {{ end }}
-        <!-- end service -->
-      {{ end }}
+      <td>{{ .Error }}</td>
+    </tr>
+    {{ end }}
+  </table>
+</div>
       <!-- end main -->
   </div>
 </div>
@@ -86,10 +86,6 @@
 <!-- Placed at the end of the document so the pages load faster -->
 <script src="/static/js/jquery.min.js"></script>
 <script src="/static/js/bootstrap.min.js"></script>
-<script src="/static/js/chart.bundle.min.js"></script>
-<script>
-{{ chart }}
-</script>
 
 </body>
 </html>
