@@ -18,7 +18,7 @@ func maybe(err error) {
 }
 
 func Run() {
-	app := cli.App("gaffer", "Mesos Init System")
+	app := cli.App("gaffer", "Distributed Init System")
 	app.Spec = "[OPTIONS]"
 	app.Version("version", fmt.Sprintf("%s (%s)", version.Version, version.GitSHA))
 	var (
