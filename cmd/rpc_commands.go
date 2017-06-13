@@ -25,11 +25,12 @@ func toStdout(ch <-chan supervisor.Response) {
 	writer := uilive.New()
 	writer.Start()
 	table := uitable.New()
-	table.AddRow("HOST", "PORT", "PID", "UPTIME", "ERROR")
+	table.AddRow("HOST", "PORT", "PID", "UPTIME", "MD5", "ERROR")
 	for resp := range ch {
 		writer.Flush()
 		host := resp.Host
 		var (
+			hash   string
 			pid    int
 			uptime time.Duration
 		)
@@ -37,14 +38,17 @@ func toStdout(ch <-chan supervisor.Response) {
 		case resp.Status != nil:
 			pid = resp.Status.Pid
 			uptime = resp.Status.Uptime
+			hash = resp.Status.Hash
 		case resp.Update != nil:
 			pid = resp.Update.Pid
 			uptime = resp.Update.Uptime
+			hash = resp.Update.Hash
 		case resp.Restart != nil:
 			pid = resp.Restart.Pid
 			uptime = resp.Restart.Uptime
+			hash = resp.Restart.Hash
 		}
-		table.AddRow(host.Name, host.Port, pid, uptime, resp.Error)
+		table.AddRow(host.Name, host.Port, pid, uptime, hash, resp.Error)
 		fmt.Fprintln(writer, table.String())
 	}
 	writer.Stop()

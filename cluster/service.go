@@ -1,5 +1,12 @@
 package cluster
 
+import (
+	"bytes"
+	"crypto/md5"
+	"encoding/json"
+	"fmt"
+)
+
 type Services []*Service
 
 func (services Services) Find(name string) *Service {
@@ -27,4 +34,15 @@ func (s Service) Env(name string) *Env {
 		}
 	}
 	return nil
+}
+
+func (s *Service) Equal(o *Service) bool {
+	s1, _ := json.Marshal(s)
+	s2, _ := json.Marshal(o)
+	return bytes.Compare(s1, s2) == 0
+}
+
+func (s *Service) Hash() string {
+	r, _ := json.Marshal(s)
+	return fmt.Sprintf("%x", md5.Sum(r))
 }

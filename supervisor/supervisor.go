@@ -268,6 +268,7 @@ type StatusRequest struct{}
 type StatusResponse struct {
 	Pid     int              `json:"pid"`
 	Uptime  time.Duration    `json:"uptime"`
+	Hash    string           `json:"hash"`
 	Service *cluster.Service `json:"service"`
 }
 
@@ -275,6 +276,7 @@ func (s *Supervisor) Status(req StatusRequest, resp *StatusResponse) error {
 	if proc := s.callStatus(); proc != nil {
 		resp.Pid = proc.Pid()
 		resp.Uptime = proc.Uptime()
+		resp.Hash = proc.svc.Hash()
 		resp.Service = proc.svc
 	}
 	return nil
@@ -284,6 +286,7 @@ type RestartRequest struct{}
 type RestartResponse struct {
 	Pid    int           `json:"pid"`
 	Uptime time.Duration `json:"uptime"`
+	Hash   string        `json:"hash"`
 }
 
 func (s Supervisor) Restart(req RestartRequest, resp *RestartResponse) error {
@@ -294,6 +297,7 @@ func (s Supervisor) Restart(req RestartRequest, resp *RestartResponse) error {
 	if proc := s.callStatus(); proc != nil {
 		resp.Pid = proc.Pid()
 		resp.Uptime = proc.Uptime()
+		resp.Hash = proc.svc.Hash()
 	}
 	return nil
 }
@@ -302,16 +306,20 @@ type UpdateRequest struct{ Service *cluster.Service }
 type UpdateResponse struct {
 	Pid    int           `json:"pid"`
 	Uptime time.Duration `json:"duration"`
+	Hash   string        `json:"hash"`
 }
 
 func (s Supervisor) Update(req UpdateRequest, resp *UpdateResponse) error {
-	err := s.callUpdate(req.Service)
-	if err != nil {
-		return err
+	if s.svc == nil || !s.svc.Equal(req.Service) {
+		err := s.callUpdate(req.Service)
+		if err != nil {
+			return err
+		}
 	}
 	if proc := s.callStatus(); proc != nil {
 		resp.Pid = proc.Pid()
 		resp.Uptime = proc.Uptime()
+		resp.Hash = proc.svc.Hash()
 	}
 	return nil
 }
