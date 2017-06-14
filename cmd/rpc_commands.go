@@ -70,7 +70,7 @@ func parseFilters(hosts []string, ports []int, all bool) []cluster.Filter {
 func statusCMD(asJSON *bool) func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
-			pattern = cmd.StringOpt("c config", "file://gaffer.json", "gaffer config source")
+			pattern = cmd.StringOpt("s source", "file://gaffer.json", "gaffer config source")
 			hosts   = cmd.StringsOpt("h host", []string{}, "filter by hostname")
 			ports   = cmd.IntsOpt("p port", []int{}, "filter by port number")
 			all     = cmd.BoolOpt("a all", true, "match all hosts")
@@ -95,7 +95,7 @@ func applyCMD(asJSON *bool) func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
 			name    = cmd.StringArg("SERVICE", "", "service to apply")
-			pattern = cmd.StringOpt("c config", "file://gaffer.json", "gaffer config source")
+			pattern = cmd.StringOpt("s source", "file://gaffer.json", "gaffer config source")
 			hosts   = cmd.StringsOpt("h host", []string{}, "filter by hostname")
 			ports   = cmd.IntsOpt("p port", []int{}, "filter by port number")
 			all     = cmd.BoolOpt("a all", false, "match all hosts")
@@ -124,7 +124,7 @@ func applyCMD(asJSON *bool) func(*cli.Cmd) {
 func restartCMD(asJSON *bool) func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
-			pattern = cmd.StringOpt("c config", "file://gaffer.json", "gaffer config source")
+			pattern = cmd.StringOpt("s source", "file://gaffer.json", "gaffer config source")
 			hosts   = cmd.StringsOpt("h host", []string{}, "filter by hostname")
 			ports   = cmd.IntsOpt("p port", []int{}, "filter by port number")
 			all     = cmd.BoolOpt("a all", false, "match all hosts")

@@ -32,9 +32,9 @@ func hostsToStdout(hosts []*cluster.Host) {
 func getCMD(asJSON *bool) func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
-			pattern      = cmd.StringOpt("c config", "file://gaffer.json", "gaffer config source")
-			showHosts    = cmd.BoolOpt("h hosts", false, "show hosts")
-			showServices = cmd.BoolOpt("s services", true, "show services")
+			pattern      = cmd.StringOpt("s source", "file://gaffer.json", "gaffer config source")
+			showHosts    = cmd.BoolOpt("hosts", false, "show hosts")
+			showServices = cmd.BoolOpt("services", true, "show services")
 		)
 		cmd.Action = func() {
 			source, err := cluster.NewSource(*pattern)
@@ -62,7 +62,7 @@ func setCMD(asJSON *bool) func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
 			path    = cmd.StringArg("PATH", "gaffer.json", "path to config")
-			pattern = cmd.StringOpt("c config", "file://gaffer.json", "gaffer config source")
+			pattern = cmd.StringOpt("s source", "file://gaffer.json", "gaffer config source")
 		)
 		cmd.Spec = "[OPTIONS] PATH"
 		cmd.Action = func() {
