@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  name = "github.com/aws/aws-sdk-go"
+  packages = ["aws","aws/awserr","aws/awsutil","aws/client","aws/client/metadata","aws/corehandlers","aws/credentials","aws/credentials/ec2rolecreds","aws/credentials/endpointcreds","aws/credentials/stscreds","aws/defaults","aws/ec2metadata","aws/endpoints","aws/request","aws/session","aws/signer/v4","internal/shareddefaults","private/protocol","private/protocol/query","private/protocol/query/queryutil","private/protocol/rest","private/protocol/restxml","private/protocol/xml/xmlutil","service/s3","service/s3/s3iface","service/s3/s3manager","service/sts"]
+  revision = "47ba3b0518c83189f3a1c95d20fc22f267e02ed3"
+  version = "v1.8.41"
+
+[[projects]]
   branch = "master"
   name = "github.com/boltdb/bolt"
   packages = ["."]
@@ -12,6 +18,12 @@
   name = "github.com/cenkalti/backoff"
   packages = ["."]
   revision = "5d150e7eec023ce7a124856b37c68e54b4050ac7"
+
+[[projects]]
+  name = "github.com/go-ini/ini"
+  packages = ["."]
+  revision = "d3de07a94d22b4a0972deb4b96d790c2c0ce8333"
+  version = "v1.28.0"
 
 [[projects]]
   branch = "master"
@@ -30,6 +42,12 @@
   name = "github.com/jawher/mow.cli"
   packages = ["."]
   revision = "d3ffbc2f98b83e09dc8efd55ecec75eb5fd656ec"
+
+[[projects]]
+  name = "github.com/jmespath/go-jmespath"
+  packages = ["."]
+  revision = "3433f3ea46d9f8019119e7dd41274e112a2359a9"
+  version = "0.2.2"
 
 [[projects]]
   branch = "master"
@@ -75,6 +93,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "bf0708d086f6099d3248317b1a4adb1d154ac9f69b64aee8de88f69e7e6c79ac"
+  inputs-digest = "3effe963d8a411dbebaecdc831aa7f8b3b1a512e41f3ea55ccb01ed4d53b3f93"
   solver-name = "gps-cdcl"
   solver-version = 1
