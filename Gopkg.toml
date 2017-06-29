@@ -68,7 +68,11 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/boltdb/bolt"
+  name = "github.com/Azure/go-ansiterm"
+
+[[constraint]]
+  name = "github.com/aws/aws-sdk-go"
+  version = "1.8.41"
 
 [[constraint]]
   branch = "master"
@@ -76,7 +80,11 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/gosuri/uilive"
+  name = "github.com/containerd/go-runc"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/golang/protobuf"
 
 [[constraint]]
   branch = "master"
@@ -92,8 +100,16 @@
 
 [[constraint]]
   branch = "master"
+  name = "github.com/opencontainers/runtime-spec"
+
+[[constraint]]
+  branch = "master"
   name = "go.uber.org/zap"
 
 [[constraint]]
   branch = "master"
-  name = "golang.org/x/sys"
+  name = "golang.org/x/net"
+
+[[constraint]]
+  branch = "master"
+  name = "google.golang.org/grpc"
