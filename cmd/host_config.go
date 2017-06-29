@@ -5,22 +5,12 @@ import (
 	"fmt"
 	"github.com/gosuri/uitable"
 	"github.com/jawher/mow.cli"
-	"github.com/vektorlab/gaffer/cluster"
+	"github.com/vektorlab/gaffer/host"
 	"io/ioutil"
 	"os"
-	"strings"
 )
 
-func servicesToStdout(services []*cluster.Service) {
-	table := uitable.New()
-	table.AddRow("ID", "ARGS", "MD5")
-	for _, service := range services {
-		table.AddRow(service.ID, strings.Join(service.Args, " "), service.Hash())
-	}
-	fmt.Println(table)
-}
-
-func hostsToStdout(hosts []*cluster.Host) {
+func hostsToStdout(hosts host.Hosts) {
 	table := uitable.New()
 	table.AddRow("HOST", "PORT")
 	for _, host := range hosts {
@@ -32,12 +22,11 @@ func hostsToStdout(hosts []*cluster.Host) {
 func getCMD(asJSON *bool) func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
-			pattern      = cmd.StringOpt("s source", "file://gaffer.json", "gaffer config source")
-			showHosts    = cmd.BoolOpt("hosts", false, "show hosts")
-			showServices = cmd.BoolOpt("services", true, "show services")
+			pattern   = cmd.StringOpt("s source", "file://gaffer.json", "gaffer config source")
+			showHosts = cmd.BoolOpt("hosts", false, "show hosts")
 		)
 		cmd.Action = func() {
-			source, err := cluster.NewSource(*pattern)
+			source, err := host.NewSource(*pattern)
 			maybe(err)
 			cfg, err := source.Get()
 			maybe(err)
@@ -47,12 +36,6 @@ func getCMD(asJSON *bool) func(*cli.Cmd) {
 			}
 			if *showHosts {
 				hostsToStdout(cfg.Hosts)
-				if *showServices {
-					fmt.Println("-----")
-				}
-			}
-			if *showServices {
-				servicesToStdout(cfg.Services)
 			}
 		}
 	}
@@ -66,11 +49,11 @@ func setCMD(asJSON *bool) func(*cli.Cmd) {
 		)
 		cmd.Spec = "[OPTIONS] PATH"
 		cmd.Action = func() {
-			source, err := cluster.NewSource(*pattern)
+			source, err := host.NewSource(*pattern)
 			maybe(err)
 			raw, err := ioutil.ReadFile(*path)
 			maybe(err)
-			cfg := &cluster.Config{}
+			cfg := &host.Config{}
 			maybe(json.Unmarshal(raw, cfg))
 			maybe(source.Set(cfg))
 		}

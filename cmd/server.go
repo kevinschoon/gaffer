@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/jawher/mow.cli"
-	"github.com/vektorlab/gaffer/cluster"
+	"github.com/vektorlab/gaffer/host"
 	"github.com/vektorlab/gaffer/server"
 	"github.com/vektorlab/gaffer/user"
 )
@@ -21,7 +21,7 @@ func serverCMD() func(*cli.Cmd) {
 				maybe(err)
 				usr = u
 			}
-			source, err := cluster.NewSource(*sourcePtrn)
+			source, err := host.NewSource(*sourcePtrn)
 			maybe(err)
 			maybe(server.Run(server.New(source, usr), *pattern))
 		}

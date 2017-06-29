@@ -2,96 +2,97 @@ package supervisor
 
 import (
 	"fmt"
-	"github.com/vektorlab/gaffer/cluster"
+	"github.com/vektorlab/gaffer/host"
 	"github.com/vektorlab/gaffer/log"
+	"go.uber.org/zap"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 	"sync"
 )
 
-func Clients(hosts cluster.Hosts) map[cluster.Host]Client {
-	clients := map[cluster.Host]Client{}
-	for _, host := range hosts {
-		clients[*host] = Client{Hostname: host.Name, Port: host.Port}
+func NewClient(h host.Host) (*grpc.ClientConn, error) {
+	address := fmt.Sprintf("%s:%d", h.Name, h.Port)
+	log.Log.Debug(fmt.Sprintf("dailing %s", address))
+	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	if err != nil {
+		return nil, err
 	}
-	return clients
-}
-
-type Response struct {
-	Host    cluster.Host
-	Error   error
-	Status  *StatusResponse
-	Update  *UpdateResponse
-	Restart *RestartResponse
+	return conn, nil
 }
 
 type ClientMux struct {
-	Clients map[cluster.Host]Client
+	db      host.Source
+	filters []host.Filter
 }
 
-func (cm ClientMux) Status() chan Response {
-	respCh := make(chan Response)
+func (cm *ClientMux) Status(req *StatusRequest) (chan *StatusResponse, error) {
+	hosts, err := cm.db.Get()
+	if err != nil {
+		return nil, err
+	}
+	ch := make(chan *StatusResponse)
 	var wg sync.WaitGroup
-	for host, cli := range cm.Clients {
+	for _, h := range hosts.Hosts.Filter(cm.filters...) {
 		wg.Add(1)
-		go func(host cluster.Host, cli Client) {
+		go func(h *host.Host) {
 			defer wg.Done()
-			resp, err := cli.Status()
+			conn, err := NewClient(*h)
 			if err != nil {
-				log.Log.Debug(fmt.Sprintf("could not refresh service from %s:%d", host.Name, host.Port))
-				respCh <- Response{Host: host, Error: err}
-			} else {
-				respCh <- Response{Host: host, Status: resp}
+				log.Log.Error(fmt.Sprintf("cannot connect to %s: %s", h.String(), err.Error()))
+				return
 			}
-		}(host, cli)
+			defer conn.Close()
+			resp, err := NewSupervisorClient(conn).Status(context.Background(), req)
+			if err != nil {
+				log.Log.Error("bad RPC request", zap.Error(err))
+				return
+			}
+			ch <- resp
+		}(h)
 	}
 	go func() {
 		wg.Wait()
-		close(respCh)
+		close(ch)
 	}()
-	return respCh
+	return ch, nil
 }
 
-func (cm ClientMux) Apply(service *cluster.Service) chan Response {
-	respCh := make(chan Response)
+func (cm *ClientMux) Restart(req *RestartRequest) (chan *RestartResponse, error) {
+	hosts, err := cm.db.Get()
+	if err != nil {
+		return nil, err
+	}
+	ch := make(chan *RestartResponse)
 	var wg sync.WaitGroup
-	for host, cli := range cm.Clients {
+	for _, h := range hosts.Hosts.Filter(cm.filters...) {
 		wg.Add(1)
-		go func(cli Client) {
+		go func(h *host.Host) {
 			defer wg.Done()
-			resp, err := cli.Update(service)
+			conn, err := NewClient(*h)
 			if err != nil {
-				log.Log.Info(fmt.Sprintf("could not apply service to %s:%d", cli.Hostname, cli.Port))
-				respCh <- Response{Host: host, Error: err}
-			} else {
-				respCh <- Response{Host: host, Update: resp}
+				log.Log.Error(fmt.Sprintf("cannot connect to %s: %s", h.String(), err.Error()))
+				return
 			}
-		}(cli)
+			defer conn.Close()
+			resp, err := NewSupervisorClient(conn).Restart(context.Background(), req)
+			if err != nil {
+				log.Log.Error(fmt.Sprintf("bad request %s: %s", h.String(), err.Error()))
+				return
+			}
+			ch <- resp
+		}(h)
 	}
 	go func() {
 		wg.Wait()
-		close(respCh)
+		close(ch)
 	}()
-	return respCh
+	return ch, nil
 }
 
-func (cm ClientMux) Restart() chan Response {
-	respCh := make(chan Response)
-	var wg sync.WaitGroup
-	for host, cli := range cm.Clients {
-		wg.Add(1)
-		go func(cli Client) {
-			defer wg.Done()
-			resp, err := cli.Restart()
-			if err != nil {
-				log.Log.Debug(fmt.Sprintf("could not restart service @ %s:%d", cli.Hostname, cli.Port))
-				respCh <- Response{Host: host, Error: err}
-			} else {
-				respCh <- Response{Host: host, Restart: resp}
-			}
-		}(cli)
+func NewClientMux(db host.Source, filters ...host.Filter) *ClientMux {
+	mux := &ClientMux{
+		db:      db,
+		filters: filters,
 	}
-	go func() {
-		wg.Wait()
-		close(respCh)
-	}()
-	return respCh
+	return mux
 }

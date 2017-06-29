@@ -1,17 +1,19 @@
-package cluster
+package host
 
 import (
+	"fmt"
 	"regexp"
+	"strconv"
+	"strings"
 )
+
+type Config struct {
+	Hosts Hosts `json:"hosts"`
+}
 
 type Filter func(*Host) bool
 
 type Hosts []*Host
-
-type Host struct {
-	Name string `json:"name"`
-	Port int    `json:"port"`
-}
 
 func (hosts Hosts) Filter(filters ...Filter) Hosts {
 	matched := Hosts{}
@@ -39,6 +41,18 @@ func ByName(pattern string) Filter {
 
 func ByPort(p int) Filter {
 	return func(h *Host) bool {
-		return h.Port == p
+		return h.Port == int32(p)
 	}
+}
+
+func New(pattern string) (*Host, error) {
+	if !strings.Contains(pattern, "gaffer://") {
+		return nil, fmt.Errorf("bad host pattern: %s", pattern)
+	}
+	split := strings.SplitN(strings.Replace(pattern, "gaffer://", "", -1), ":", 2)
+	port, err := strconv.Atoi(split[1])
+	if err != nil {
+		return nil, err
+	}
+	return &Host{Name: split[0], Port: int32(port)}, nil
 }

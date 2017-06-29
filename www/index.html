@@ -35,43 +35,24 @@
 
 <div class="container-fluid">
   <div class="row">
-    <!--main -->
-      <div class="panel panel-default">
-  <!-- Default panel contents -->
-  <div class="panel-heading">Services</div>
-  <!-- Table -->
-  <table class="table">
-    <tr>
-      <th> HOST </th>
-      <th> PORT </th>
-      <th> PID </th>
-      <th> UPTIME </th>
-      <th> MD5 </th>
-      <th> ERROR </th>
-    </tr>
-    {{ range statuses }}
-    {{ if .Error }}
-    <tr class="danger">
-    {{ else }}
-    <tr class="success">
-    {{ end }}
-      <td>{{ .Host.Name }}</td>
-      <td>{{ .Host.Port }}</td>
-      {{ if .Status }}
-      <td>{{ .Status.Pid }}</td>
-      <td>{{ .Status.Uptime }}</td>
-      <td>{{ .Status.Hash }}</td>
-      {{ else }}
-      <td>??????????<td>
-      <td>??????????<td>
-      <td>????<td>
+        {{ range statuses }}
+    <div class="panel panel-default">
+      <div class="panel-heading"><h3>{{.Host.Name}}:{{.Host.Port}}</h3></div>
+      <br>
+          {{ range .Services }}
+        <div class="panel panel-default">
+          <div class="panel-heading">{{.Id}}</div>
+          {{ . }}
+        </div>
+        {{ end }}
+          {{ range .Stats }}
+        <div class="panel panel-default">
+          <div class="panel-heading">stats</div>
+          {{ . }}
+        </div>
+        {{ end }}
       {{ end }}
-      <td>{{ .Error }}</td>
-    </tr>
-    {{ end }}
-  </table>
-</div>
-      <!-- end main -->
+    </div>
   </div>
 </div>
 

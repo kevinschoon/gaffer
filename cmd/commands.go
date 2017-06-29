@@ -49,10 +49,11 @@ func Run() {
 			log.Debug()
 		}
 	}
-	app.Command("supervise", "supervise a Gaffer service", superviseCMD())
-	app.Command("status", "print remote cluster services", statusCMD(json))
-	app.Command("apply", "apply a service configuration", applyCMD(json))
-	app.Command("restart", "restart remote services", restartCMD(json))
+	app.Command("init", "launch the Gaffer init process", initCMD())
+	app.Command("status", "output the status of local services", statusCMD(json))
+	app.Command("restart", "restart a local service", restartCMD(json))
+	//app.Command("apply", "apply a service configuration", applyCMD(json))
+	//app.Command("restart", "restart remote services", restartCMD(json))
 	app.Command("config", "modify a cluster config", configCMD(json))
 	app.Command("server", "run a gaffer HTTP proxy and UI", serverCMD())
 

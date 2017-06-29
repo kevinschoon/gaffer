@@ -3,8 +3,9 @@ package server
 import (
 	"fmt"
 	"github.com/julienschmidt/httprouter"
-	"github.com/vektorlab/gaffer/cluster"
+	"github.com/vektorlab/gaffer/host"
 	"github.com/vektorlab/gaffer/log"
+	"github.com/vektorlab/gaffer/supervisor"
 	"github.com/vektorlab/gaffer/user"
 	"go.uber.org/zap"
 	"net/http"
@@ -13,8 +14,9 @@ import (
 )
 
 type Server struct {
-	source cluster.Source
+	source host.Source
 	user   *user.User
+	client *supervisor.ClientMux
 }
 
 type HandleFunc func(http.ResponseWriter, *http.Request, httprouter.Params) error
@@ -61,6 +63,6 @@ func Run(server *Server, pattern string) error {
 	return http.ListenAndServe(pattern, router)
 }
 
-func New(source cluster.Source, u *user.User) *Server {
-	return &Server{source: source, user: u}
+func New(source host.Source, u *user.User) *Server {
+	return &Server{source: source, user: u, client: supervisor.NewClientMux(source, host.Any())}
 }

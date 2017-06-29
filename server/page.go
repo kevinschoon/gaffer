@@ -3,28 +3,26 @@ package server
 import (
 	"fmt"
 	"github.com/julienschmidt/httprouter"
-	//"github.com/vektorlab/gaffer/cluster"
 	"github.com/vektorlab/gaffer/supervisor"
 	"html/template"
 	"net/http"
 	"strings"
 )
 
-func helpers(statuses []supervisor.Response) template.FuncMap {
+func helpers(statuses []*supervisor.StatusResponse) template.FuncMap {
 	return template.FuncMap{
 		"title":    func() string { return "gaffer" },
-		"statuses": func() []supervisor.Response { return statuses },
+		"statuses": func() []*supervisor.StatusResponse { return statuses },
 	}
 }
 
 func (s *Server) HTML(w http.ResponseWriter, r *http.Request, p httprouter.Params) error {
-	config, err := s.source.Get()
+	statuses := []*supervisor.StatusResponse{}
+	ch, err := s.client.Status(&supervisor.StatusRequest{})
 	if err != nil {
 		return err
 	}
-	mux := supervisor.ClientMux{supervisor.Clients(config.Hosts)}
-	statuses := []supervisor.Response{}
-	for status := range mux.Status() {
+	for status := range ch {
 		statuses = append(statuses, status)
 	}
 	var tmpl *template.Template

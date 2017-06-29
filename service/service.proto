@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package service;
+
+import "google/protobuf/any.proto";
+
+message Service {
+  string id = 1;
+  string bundle = 2;
+  google.protobuf.Any spec = 3;
+}
