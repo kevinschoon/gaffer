@@ -11,7 +11,7 @@ import (
 func initCMD() func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
-			path = cmd.StringArg("PATH", "/containers/services", "container init path")
+			path = cmd.StringArg("PATH", "/containers", "container init path")
 			port = cmd.IntOpt("p port", 10000, "port to listen on")
 		)
 		cmd.Spec = "[OPTIONS] [PATH]"

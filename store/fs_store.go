@@ -13,23 +13,24 @@ import (
 	"sync"
 )
 
-// FSStore is a read-only "database"
-// for storing service configuration.
-// The base path is the LinuxKit
-// default of /containers/services/<svc>
+// FSStore reads runc Service
+// configuration from a base
+// path. It is is compatible
+// with LinuxKit's /containers/{service,onboot}
+// paths.
 type FSStore struct {
 	BasePath string
 	mu       sync.RWMutex
 }
 
-func (s FSStore) Services() ([]*service.Service, error) {
-	dirs, err := ioutil.ReadDir(s.BasePath)
+func (s FSStore) services(path string) ([]*service.Service, error) {
+	dirs, err := ioutil.ReadDir(path)
 	if err != nil {
 		return nil, err
 	}
 	svcs := []*service.Service{}
 	for _, dir := range dirs {
-		bundle := filepath.Join(s.BasePath, dir.Name())
+		bundle := filepath.Join(path, dir.Name())
 		log.Log.Debug(fmt.Sprintf("loading service from dir %s", bundle))
 		raw, err := ioutil.ReadFile(filepath.Join(bundle, "config.json"))
 		if err != nil {
@@ -46,6 +47,14 @@ func (s FSStore) Services() ([]*service.Service, error) {
 		svcs = append(svcs, svc)
 	}
 	return svcs, nil
+}
+
+func (s FSStore) OnBoot() ([]*service.Service, error) {
+	return s.services(fmt.Sprintf("%s/onboot", s.BasePath))
+}
+
+func (s FSStore) Services() ([]*service.Service, error) {
+	return s.services(fmt.Sprintf("%s/services", s.BasePath))
 }
 
 func NewFSStore(path string) *FSStore {
