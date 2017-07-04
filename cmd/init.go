@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/jawher/mow.cli"
+	"github.com/vektorlab/gaffer/config"
 	"github.com/vektorlab/gaffer/host"
 	"github.com/vektorlab/gaffer/store"
 	"github.com/vektorlab/gaffer/supervisor"
@@ -11,15 +12,24 @@ import (
 func initCMD() func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
-			path = cmd.StringArg("PATH", "/containers", "container init path")
-			port = cmd.IntOpt("p port", 10000, "port to listen on")
+			path    = cmd.StringArg("PATH", "/containers", "container init path")
+			logPath = cmd.StringArg("log", "/var/log", "path to output logs on")
+			port    = cmd.IntOpt("p port", 10000, "port to listen on")
 		)
 		cmd.Spec = "[OPTIONS] [PATH]"
 		cmd.Action = func() {
-			db := store.NewFSStore(*path)
-			spv, err := supervisor.New(db)
+			cfg := config.Config{
+				Store: config.Store{
+					BasePath: *path,
+				},
+				Runc: config.Runc{
+					LogPath: *logPath,
+				},
+			}
+			db := store.NewFSStore(cfg)
+			spv, err := supervisor.New(db, cfg)
 			maybe(err)
-			spv.Init()
+			maybe(spv.Init())
 			name, err := os.Hostname()
 			maybe(err)
 			maybe(supervisor.NewServer(spv, db, &host.Host{Name: name, Port: int32(*port)}).Listen())

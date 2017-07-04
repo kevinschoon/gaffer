@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/cenkalti/backoff"
+	"github.com/vektorlab/gaffer/config"
 	"github.com/vektorlab/gaffer/log"
 	"github.com/vektorlab/gaffer/runc"
 	"github.com/vektorlab/gaffer/store"
@@ -16,18 +17,19 @@ type Supervisor struct {
 	db       *store.FSStore
 	runcs    map[string]*runc.Runc
 	cancelCh []chan bool
+	config   config.Config
 }
 
-func New(db *store.FSStore) (*Supervisor, error) {
+func New(db *store.FSStore, cfg config.Config) (*Supervisor, error) {
 	services, err := db.Services()
 	if err != nil {
 		return nil, err
 	}
 	runcs := map[string]*runc.Runc{}
 	for _, service := range services {
-		runcs[service.Id] = runc.New(service.Id, service.Bundle)
+		runcs[service.Id] = runc.New(service.Id, service.Bundle, cfg)
 	}
-	return &Supervisor{db: db, runcs: runcs}, nil
+	return &Supervisor{db: db, runcs: runcs, config: cfg}, nil
 }
 
 func (s *Supervisor) Init() error {
@@ -36,7 +38,7 @@ func (s *Supervisor) Init() error {
 		return err
 	}
 	for _, boot := range bootSvcs {
-		_, err := runc.New(boot.Id, boot.Bundle).Run()
+		_, err := runc.New(boot.Id, boot.Bundle, s.config).Run()
 		if err != nil {
 			return err
 		}

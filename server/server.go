@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"github.com/julienschmidt/httprouter"
+	"github.com/vektorlab/gaffer/config"
 	"github.com/vektorlab/gaffer/host"
 	"github.com/vektorlab/gaffer/log"
 	"github.com/vektorlab/gaffer/supervisor"
@@ -14,9 +15,10 @@ import (
 )
 
 type Server struct {
-	source host.Source
-	user   *user.User
-	client *supervisor.ClientMux
+	source  host.Source
+	user    *user.User
+	client  *supervisor.ClientMux
+	pattern string
 }
 
 type HandleFunc func(http.ResponseWriter, *http.Request, httprouter.Params) error
@@ -53,16 +55,25 @@ func HandleWrapper(s *Server, fn HandleFunc) httprouter.Handle {
 	}
 }
 
-func Run(server *Server, pattern string) error {
+func Run(server *Server) error {
 	router := httprouter.New()
 	router.GET("/", HandleWrapper(server, server.HTML))
 	router.GET("/get", HandleWrapper(server, server.Get))
 	router.POST("/set", HandleWrapper(server, server.Set))
 	router.GET("/static/:dir/:file", HandleWrapper(server, server.Static))
-	log.Log.Info("server", zap.String("msg", fmt.Sprintf("Listening @%s", pattern)))
-	return http.ListenAndServe(pattern, router)
+	log.Log.Info("server", zap.String("msg", fmt.Sprintf("Listening @%s", server.pattern)))
+	return http.ListenAndServe(server.pattern, router)
 }
 
-func New(source host.Source, u *user.User) *Server {
-	return &Server{source: source, user: u, client: supervisor.NewClientMux(source, host.Any())}
+func New(source host.Source, cfg config.Config) (*Server, error) {
+	usr, err := user.FromString(cfg.User.User)
+	if err != nil {
+		return nil, err
+	}
+	return &Server{
+		source:  source,
+		user:    usr,
+		client:  supervisor.NewClientMux(source, host.Any()),
+		pattern: cfg.Server.Pattern,
+	}, nil
 }

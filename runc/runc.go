@@ -4,17 +4,15 @@ import (
 	"context"
 	"fmt"
 	"github.com/containerd/go-runc"
+	"github.com/vektorlab/gaffer/config"
 	"github.com/vektorlab/gaffer/log"
 	"go.uber.org/zap"
 	"syscall"
 	"time"
 )
 
-const (
-	RuncBaseLogPath = "/tmp"
-)
-
 type Runc struct {
+	logPath string
 	rc      *runc.Runc
 	bundle  string
 	id      string
@@ -40,7 +38,7 @@ func (rc *Runc) Delete() error {
 }
 
 func (rc *Runc) Run() (int, error) {
-	io, err := NewIO(rc.id, RuncBaseLogPath)
+	io, err := NewIO(rc.id, rc.logPath)
 	if err != nil {
 		return 0, err
 	}
@@ -84,12 +82,13 @@ func (rc *Runc) Uptime() time.Duration {
 	return time.Since(rc.started)
 }
 
-func New(id, bundle string) *Runc {
+func New(id, bundle string, cfg config.Config) *Runc {
 	rc := &Runc{
-		id:     id,
-		bundle: bundle,
+		id:      id,
+		bundle:  bundle,
+		logPath: cfg.Runc.LogPath,
 		rc: &runc.Runc{
-			Log: RuncBaseLogPath + fmt.Sprintf("/%s_runc.log", id),
+			Log: cfg.Runc.LogPath + fmt.Sprintf("/%s_runc.log", id),
 		},
 	}
 	return rc

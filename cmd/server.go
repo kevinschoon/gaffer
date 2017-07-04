@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"github.com/jawher/mow.cli"
+	"github.com/vektorlab/gaffer/config"
 	"github.com/vektorlab/gaffer/host"
 	"github.com/vektorlab/gaffer/server"
-	"github.com/vektorlab/gaffer/user"
 )
 
 func serverCMD() func(*cli.Cmd) {
@@ -15,15 +15,19 @@ func serverCMD() func(*cli.Cmd) {
 			userStr    = cmd.StringOpt("u user", "", "user:pass combination")
 		)
 		cmd.Action = func() {
-			var usr *user.User
-			if *userStr != "" {
-				u, err := user.FromString(*userStr)
-				maybe(err)
-				usr = u
+			cfg := config.Config{
+				Server: config.Server{
+					Pattern: *pattern,
+				},
+				User: config.User{
+					User: *userStr,
+				},
 			}
 			source, err := host.NewSource(*sourcePtrn)
 			maybe(err)
-			maybe(server.Run(server.New(source, usr), *pattern))
+			svr, err := server.New(source, cfg)
+			maybe(err)
+			maybe(server.Run(svr))
 		}
 	}
 }

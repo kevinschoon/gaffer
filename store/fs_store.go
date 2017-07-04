@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/vektorlab/gaffer/config"
 	"github.com/vektorlab/gaffer/log"
 	"github.com/vektorlab/gaffer/service"
 	"go.uber.org/zap"
@@ -57,6 +58,6 @@ func (s FSStore) Services() ([]*service.Service, error) {
 	return s.services(fmt.Sprintf("%s/services", s.BasePath))
 }
 
-func NewFSStore(path string) *FSStore {
-	return &FSStore{BasePath: path}
+func NewFSStore(cfg config.Config) *FSStore {
+	return &FSStore{BasePath: cfg.Store.BasePath}
 }
