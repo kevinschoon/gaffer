@@ -22,19 +22,6 @@ type FSStore struct {
 	mu       sync.RWMutex
 }
 
-func (s FSStore) Service(id string) (*service.Service, error) {
-	services, err := s.Services()
-	if err != nil {
-		return nil, err
-	}
-	for _, service := range services {
-		if service.Id == id {
-			return service, nil
-		}
-	}
-	return nil, fmt.Errorf("%s not found", id)
-}
-
 func (s FSStore) Services() ([]*service.Service, error) {
 	dirs, err := ioutil.ReadDir(s.BasePath)
 	if err != nil {
