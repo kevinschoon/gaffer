@@ -30,13 +30,24 @@ func New(db *store.FSStore) (*Supervisor, error) {
 	return &Supervisor{db: db, runcs: runcs}, nil
 }
 
-func (s *Supervisor) Init() {
+func (s *Supervisor) Init() error {
+	bootSvcs, err := s.db.OnBoot()
+	if err != nil {
+		return err
+	}
+	for _, boot := range bootSvcs {
+		_, err := runc.New(boot.Id, boot.Bundle).Run()
+		if err != nil {
+			return err
+		}
+	}
 	s.cancelCh = []chan bool{}
 	for id, rc := range s.runcs {
 		ch := make(chan bool)
 		s.cancelCh = append(s.cancelCh, ch)
 		go monitor(ch, MonitorFunc(id, rc))
 	}
+	return nil
 }
 
 func monitor(ch chan bool, fn func() error) {
