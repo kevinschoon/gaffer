@@ -7,7 +7,6 @@ import (
 	"github.com/vektorlab/gaffer/version"
 	"go.uber.org/zap"
 	"os"
-	"strings"
 )
 
 func maybe(err error) {
@@ -22,38 +21,28 @@ func Run() {
 	app.Spec = "[OPTIONS]"
 	app.Version("version", fmt.Sprintf("%s (%s)", version.Version, version.GitSHA))
 	var (
-		json  = app.BoolOpt("json", false, "enables json log output")
-		level = app.StringOpt("level", "INFO", "specify logging level [ERROR, WARN, INFO, DEBUG]")
-		debug = app.BoolOpt("d debug", false, "output debug information")
+		json    = app.BoolOpt("json", false, "enables json log output")
+		debug   = app.BoolOpt("d debug", false, "output debug information")
+		logPath = app.StringOpt("l log", "", "log output to a file")
 	)
 	app.Before = func() {
-		switch strings.ToUpper(*level) {
-		case "ERROR":
-			log.Level.SetLevel(zap.ErrorLevel)
-		case "WARN":
-			log.Level.SetLevel(zap.WarnLevel)
-		case "INFO":
-			log.Level.SetLevel(zap.InfoLevel)
-		case "DEBUG":
-			log.Level.SetLevel(zap.DebugLevel)
-			log.Debug()
-		default:
-			maybe(fmt.Errorf("unsupported logging level %s", *level))
-		}
 		// Enable JSON logging output
 		if *json {
 			log.Json()
 		}
-		//Enable debugging with dev features
+		// Enable debugging with dev features
 		if *debug {
+			log.Level.SetLevel(zap.DebugLevel)
 			log.Debug()
+		}
+		// Change log output from stderr to a file
+		if *logPath != "" {
+			log.Output(*logPath)
 		}
 	}
 	app.Command("init", "launch the Gaffer init process", initCMD())
 	app.Command("status", "output the status of local services", statusCMD(json))
 	app.Command("restart", "restart a local service", restartCMD(json))
-	//app.Command("apply", "apply a service configuration", applyCMD(json))
-	//app.Command("restart", "restart remote services", restartCMD(json))
 	app.Command("config", "modify a cluster config", configCMD(json))
 	app.Command("server", "run a gaffer HTTP proxy and UI", serverCMD())
 

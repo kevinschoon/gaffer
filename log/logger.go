@@ -23,6 +23,12 @@ func Debug() {
 	Log, _ = config.Build()
 }
 
+// Output sets the log output path
+func Output(path string) {
+	config.OutputPaths = []string{path}
+	Log, _ = config.Build()
+}
+
 func init() {
 	config = zap.NewProductionConfig()
 	// Default to human friendly console output
