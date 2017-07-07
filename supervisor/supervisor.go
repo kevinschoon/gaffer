@@ -7,42 +7,27 @@ import (
 	"github.com/vektorlab/gaffer/config"
 	"github.com/vektorlab/gaffer/log"
 	"github.com/vektorlab/gaffer/runc"
-	"github.com/vektorlab/gaffer/store"
+	"github.com/vektorlab/gaffer/service"
 	"time"
 )
 
 const BackoffInterval = 1000 * time.Millisecond
 
 type Supervisor struct {
-	db       *store.FSStore
 	runcs    map[string]*runc.Runc
 	cancelCh []chan bool
 	config   config.Config
 }
 
-func New(db *store.FSStore, cfg config.Config) (*Supervisor, error) {
-	services, err := db.Services()
-	if err != nil {
-		return nil, err
-	}
+func New(services []*service.Service, cfg config.Config) (*Supervisor, error) {
 	runcs := map[string]*runc.Runc{}
-	for _, service := range services {
-		runcs[service.Id] = runc.New(service.Id, service.Bundle, cfg)
+	for _, svc := range services {
+		runcs[svc.Id] = runc.New(svc.Id, svc.Bundle, cfg)
 	}
-	return &Supervisor{db: db, runcs: runcs, config: cfg}, nil
+	return &Supervisor{runcs: runcs, config: cfg}, nil
 }
 
 func (s *Supervisor) Init() error {
-	bootSvcs, err := s.db.OnBoot()
-	if err != nil {
-		return err
-	}
-	for _, boot := range bootSvcs {
-		_, err := runc.New(boot.Id, boot.Bundle, s.config).Run()
-		if err != nil {
-			return err
-		}
-	}
 	s.cancelCh = []chan bool{}
 	for id, rc := range s.runcs {
 		ch := make(chan bool)

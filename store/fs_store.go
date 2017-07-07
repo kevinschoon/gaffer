@@ -50,12 +50,8 @@ func (s FSStore) services(path string) ([]*service.Service, error) {
 	return svcs, nil
 }
 
-func (s FSStore) OnBoot() ([]*service.Service, error) {
-	return s.services(fmt.Sprintf("%s/onboot", s.BasePath))
-}
-
 func (s FSStore) Services() ([]*service.Service, error) {
-	return s.services(fmt.Sprintf("%s/services", s.BasePath))
+	return s.services(s.BasePath)
 }
 
 func NewFSStore(cfg config.Config) *FSStore {
