@@ -66,9 +66,13 @@ func Run(server *Server) error {
 }
 
 func New(source host.Source, cfg config.Config) (*Server, error) {
-	usr, err := user.FromString(cfg.User.User)
-	if err != nil {
-		return nil, err
+	var usr *user.User
+	if cfg.User.User != "" {
+		u, err := user.FromString(cfg.User.User)
+		if err != nil {
+			return nil, err
+		}
+		usr = u
 	}
 	return &Server{
 		source:  source,
