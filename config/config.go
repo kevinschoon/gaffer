@@ -11,9 +11,7 @@ type Store struct {
 	BasePath string
 }
 
-type Runc struct {
-	LogPath string
-}
+type Runc struct{}
 
 type Server struct {
 	Pattern string

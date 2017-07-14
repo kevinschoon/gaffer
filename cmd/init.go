@@ -14,11 +14,10 @@ import (
 func initCMD() func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
-			path    = cmd.StringArg("PATH", "/containers", "container init path")
-			hard    = cmd.BoolOpt("h hard", false, "fail hard")
-			once    = cmd.BoolOpt("o once", false, "run the services only once, synchronously")
-			logPath = cmd.StringOpt("log", "/var/log", "path to output logs on")
-			port    = cmd.IntOpt("p port", 10000, "port to listen on")
+			path = cmd.StringArg("PATH", "/containers", "container init path")
+			hard = cmd.BoolOpt("h hard", false, "fail hard")
+			once = cmd.BoolOpt("o once", false, "run the services only once, synchronously")
+			port = cmd.IntOpt("p port", 10000, "port to listen on")
 		)
 		cmd.Spec = "[OPTIONS] [PATH]"
 		cmd.Action = func() {
@@ -26,9 +25,7 @@ func initCMD() func(*cli.Cmd) {
 				Store: config.Store{
 					BasePath: *path,
 				},
-				Runc: config.Runc{
-					LogPath: *logPath,
-				},
+				Runc: config.Runc{},
 			}
 			db := store.NewFSStore(cfg)
 			if *once {

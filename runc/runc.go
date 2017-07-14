@@ -2,7 +2,6 @@ package runc
 
 import (
 	"context"
-	"fmt"
 	"github.com/containerd/go-runc"
 	"github.com/vektorlab/gaffer/config"
 	"github.com/vektorlab/gaffer/log"
@@ -12,7 +11,6 @@ import (
 )
 
 type Runc struct {
-	logPath string
 	rc      *runc.Runc
 	bundle  string
 	id      string
@@ -38,7 +36,7 @@ func (rc *Runc) Delete() error {
 }
 
 func (rc *Runc) Run() (int, error) {
-	io, err := NewIO(rc.id, rc.logPath)
+	io, err := NewIO(rc.id)
 	if err != nil {
 		return 0, err
 	}
@@ -47,10 +45,7 @@ func (rc *Runc) Run() (int, error) {
 		io.Close()
 		//rc.io = nil
 	}()
-	err = rc.io.Start()
-	if err != nil {
-		return 0, err
-	}
+	rc.io.Start()
 	rc.started = time.Now()
 	return rc.rc.Run(context.Background(), rc.id, rc.bundle, &runc.CreateOpts{IO: io.rio})
 }
@@ -84,12 +79,9 @@ func (rc *Runc) Uptime() time.Duration {
 
 func New(id, bundle string, cfg config.Config) *Runc {
 	rc := &Runc{
-		id:      id,
-		bundle:  bundle,
-		logPath: cfg.Runc.LogPath,
-		rc: &runc.Runc{
-			Log: cfg.Runc.LogPath + fmt.Sprintf("/%s_runc.log", id),
-		},
+		id:     id,
+		bundle: bundle,
+		rc:     &runc.Runc{},
 	}
 	return rc
 }
