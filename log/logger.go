@@ -2,6 +2,7 @@ package log
 
 import (
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var (
@@ -9,6 +10,17 @@ var (
 	Level  zap.AtomicLevel
 	config zap.Config
 )
+
+var encoderConfig = zapcore.EncoderConfig{
+	TimeKey:        "ts",
+	LevelKey:       "level",
+	NameKey:        "logger",
+	MessageKey:     "msg",
+	StacktraceKey:  "stacktrace",
+	EncodeLevel:    zapcore.CapitalColorLevelEncoder,
+	EncodeTime:     zapcore.ISO8601TimeEncoder,
+	EncodeDuration: zapcore.SecondsDurationEncoder,
+}
 
 // Json toggles JSON logging output
 func Json() {
@@ -20,6 +32,7 @@ func Json() {
 func Debug() {
 	config = zap.NewDevelopmentConfig()
 	config.Level = Level
+	config.EncoderConfig = encoderConfig
 	Log, _ = config.Build()
 }
 
@@ -33,6 +46,7 @@ func init() {
 	config = zap.NewProductionConfig()
 	// Default to human friendly console output
 	config.Encoding = "console"
+	config.EncoderConfig = encoderConfig
 	Level = zap.NewAtomicLevelAt(zap.InfoLevel)
 	config.Level = Level
 	Log, _ = config.Build()
