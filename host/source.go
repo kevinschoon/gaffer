@@ -13,6 +13,13 @@ type Source interface {
 
 func NewSource(pattern string) (Source, error) {
 	switch {
+	case strings.Contains(pattern, "gaffer://"):
+		ss := SingleSource{pattern: pattern}
+		_, err := ss.Get()
+		if err != nil {
+			return nil, err
+		}
+		return ss, nil
 	case strings.Contains(pattern, "file://"):
 		return FileSource{Path: strings.Replace(pattern, "file://", "", -1)}, nil
 	case strings.Contains(pattern, "http"):

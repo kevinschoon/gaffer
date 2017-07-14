@@ -7,10 +7,6 @@ import (
 	"strings"
 )
 
-type Config struct {
-	Hosts Hosts `json:"hosts"`
-}
-
 type Filter func(*Host) bool
 
 type Hosts []*Host

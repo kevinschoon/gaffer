@@ -10,7 +10,7 @@ import (
 func serverCMD() func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
-			sourcePtrn = cmd.StringOpt("s source", "file://gaffer.json", "gaffer config source")
+			sourcePtrn = cmd.StringOpt("s source", "gaffer://localhost:10000", "gaffer config source")
 			pattern    = cmd.StringOpt("p pattern", "0.0.0.0:9090", "interface and port to listen on")
 			userStr    = cmd.StringOpt("u user", "", "user:pass combination")
 		)
