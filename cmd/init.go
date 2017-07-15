@@ -14,16 +14,18 @@ import (
 func initCMD() func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
-			path = cmd.StringArg("PATH", "/containers", "container init path")
-			hard = cmd.BoolOpt("h hard", false, "fail hard")
-			once = cmd.BoolOpt("o once", false, "run the services only once, synchronously")
-			port = cmd.IntOpt("p port", 10000, "port to listen on")
+			path       = cmd.StringArg("PATH", "/containers", "container init path")
+			hard       = cmd.BoolOpt("h hard", false, "fail hard")
+			once       = cmd.BoolOpt("o once", false, "run the services only once, synchronously")
+			port       = cmd.IntOpt("p port", 10000, "port to listen on")
+			configPath = cmd.StringArg("c configPath", "/var/config", "service configuration path")
 		)
 		cmd.Spec = "[OPTIONS] [PATH]"
 		cmd.Action = func() {
 			cfg := config.Config{
 				Store: config.Store{
-					BasePath: *path,
+					BasePath:   *path,
+					ConfigPath: *configPath,
 				},
 				Runc: config.Runc{},
 			}

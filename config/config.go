@@ -8,7 +8,8 @@ type Config struct {
 }
 
 type Store struct {
-	BasePath string
+	BasePath   string
+	ConfigPath string
 }
 
 type Runc struct{}

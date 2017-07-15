@@ -20,8 +20,9 @@ import (
 // with LinuxKit's /containers/{service,onboot}
 // paths.
 type FSStore struct {
-	BasePath string
-	mu       sync.RWMutex
+	BasePath   string
+	ConfigPath string
+	mu         sync.RWMutex
 }
 
 func (s FSStore) services(path string) ([]*service.Service, error) {
@@ -43,6 +44,16 @@ func (s FSStore) services(path string) ([]*service.Service, error) {
 		if err != nil {
 			return nil, err
 		}
+		envs, err := loadEnvs(filepath.Join(s.ConfigPath, svc.Id, "envs.json"))
+		if err == nil {
+			for key, value := range envs {
+				spec.Process.Env = append(spec.Process.Env, fmt.Sprintf("%s=%s", key, value))
+			}
+			raw, _ = json.Marshal(spec)
+			log.Log.Debug(fmt.Sprintf("environment for service %s updated from local config", svc.Id))
+		} else {
+			log.Log.Debug(fmt.Sprintf("could not load environment from local config: %s", err.Error()))
+		}
 		log.Log.Debug("loaded service bundle", zap.Any("spec", spec))
 		svc.Spec = &any.Any{Value: raw}
 		svcs = append(svcs, svc)
@@ -55,5 +66,17 @@ func (s FSStore) Services() ([]*service.Service, error) {
 }
 
 func NewFSStore(cfg config.Config) *FSStore {
-	return &FSStore{BasePath: cfg.Store.BasePath}
+	return &FSStore{
+		BasePath:   cfg.Store.BasePath,
+		ConfigPath: cfg.Store.ConfigPath,
+	}
+}
+
+func loadEnvs(path string) (map[string]string, error) {
+	raw, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	envs := map[string]string{}
+	return envs, json.Unmarshal(raw, &envs)
 }
