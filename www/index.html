@@ -25,48 +25,57 @@
 
 <body>
 
-<nav class="navbar navbar-default navbar-fixed-top">
+    <nav class="navbar navbar-default navbar-fixed-top">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <a class="navbar-brand" href="/gaffer">Gaffer</a>
+            </div>
+        </div>
+    </nav>
+
     <div class="container-fluid">
-        <div class="navbar-header">
-            <a class="navbar-brand" href="/gaffer">Gaffer</a>
+            <br> 
+           {{ range hosts }}
+           <div class="row">
+             <div class="col-md-12">
+               <div class="panel panel-default">
+                 <div class="panel-heading">
+                   <h1 class="panel-title"><b>{{ .Host.Name }}:{{ .Host.Port }}</b></h1>
+                   <br>
+        <div class="row">
+              {{ range .Entries }}
+            <div class="col-md-6">
+              <div class="panel panel-default">
+                <div class="panel-heading">
+                  <h3 class="panel-title">{{ .Service.Bundle }}</h3>
+                </div>
+                <div class="panel-body">
+                <code>
+                  {{ .Stats }}
+                </code>
+                </div>
+              </div>
+            </div>
+            {{ end }}
         </div>
     </div>
-</nav>
-
-<div class="container-fluid">
-  <div class="row">
-        {{ range statuses }}
-    <div class="panel panel-default">
-      <div class="panel-heading"><h3>{{.Host.Name}}:{{.Host.Port}}</h3></div>
-      <br>
-          {{ range .Services }}
-        <div class="panel panel-default">
-          <div class="panel-heading">{{.Id}}</div>
-          {{ . }}
-        </div>
-        {{ end }}
-          {{ range .Stats }}
-        <div class="panel panel-default">
-          <div class="panel-heading">stats</div>
-          {{ . }}
-        </div>
-        {{ end }}
-      {{ end }}
+               </div>
+             </div>
+           </div>
     </div>
-  </div>
-</div>
-
-<footer class="footer">
-  <div class="container">
-  </div>
-</footer>
+            {{ end }} 
+        <footer class="footer">
+            <div class="container">
+            </div>
+        </footer>
 
 
-<!-- Bootstrap core JavaScript
+        <!-- Bootstrap core JavaScript
 ================================================== -->
-<!-- Placed at the end of the document so the pages load faster -->
-<script src="/static/js/jquery.min.js"></script>
-<script src="/static/js/bootstrap.min.js"></script>
+        <!-- Placed at the end of the document so the pages load faster -->
+        <script src="/static/js/jquery.min.js"></script>
+        <script src="/static/js/bootstrap.min.js"></script>
 
 </body>
+
 </html>

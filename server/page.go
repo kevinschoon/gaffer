@@ -2,17 +2,54 @@ package server
 
 import (
 	"fmt"
+	"github.com/containerd/go-runc"
 	"github.com/julienschmidt/httprouter"
+	"github.com/vektorlab/gaffer/host"
+	"github.com/vektorlab/gaffer/service"
 	"github.com/vektorlab/gaffer/supervisor"
 	"html/template"
 	"net/http"
+	"sort"
 	"strings"
 )
 
+type hostContainer struct {
+	Host    host.Host
+	Entries entries
+}
+
+type entry struct {
+	Service service.Service
+	Stats   runc.Stats
+}
+
+type entries []entry
+
+func (e entries) Len() int           { return len(e) }
+func (e entries) Swap(i, j int)      { e[i], e[j] = e[j], e[i] }
+func (e entries) Less(i, j int) bool { return e[i].Service.Id < e[j].Service.Id }
+
 func helpers(statuses []*supervisor.StatusResponse) template.FuncMap {
+	hosts := []hostContainer{}
+	for _, status := range statuses {
+		h := hostContainer{
+			Host:    *status.Host,
+			Entries: entries{},
+		}
+		stats, _ := status.UnmarshalStats()
+		for _, service := range status.Services {
+			e := entry{
+				Service: *service,
+				Stats:   *stats[service.Id],
+			}
+			h.Entries = append(h.Entries, e)
+		}
+		hosts = append(hosts, h)
+		sort.Sort(h.Entries)
+	}
 	return template.FuncMap{
-		"title":    func() string { return "gaffer" },
-		"statuses": func() []*supervisor.StatusResponse { return statuses },
+		"title": func() string { return "gaffer" },
+		"hosts": func() []hostContainer { return hosts },
 	}
 }
 
