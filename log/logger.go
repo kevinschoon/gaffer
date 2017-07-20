@@ -15,7 +15,7 @@ import (
 	"path/filepath"
 )
 
-const LogFileName = "gaffer"
+const LogFileName = "gaffer.log"
 
 var Log *zap.Logger
 
