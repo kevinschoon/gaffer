@@ -5,7 +5,6 @@ import (
 	"github.com/jawher/mow.cli"
 	"github.com/vektorlab/gaffer/log"
 	"github.com/vektorlab/gaffer/version"
-	"go.uber.org/zap"
 	"os"
 )
 
@@ -21,24 +20,26 @@ func Run() {
 	app.Spec = "[OPTIONS]"
 	app.Version("version", fmt.Sprintf("%s (%s)", version.Version, version.GitSHA))
 	var (
-		json    = app.BoolOpt("json", false, "enables json log output")
-		debug   = app.BoolOpt("d debug", false, "output debug information")
-		logPath = app.StringOpt("l log", "", "log output to a file")
+		json       = app.BoolOpt("json", false, "enables json log output")
+		debug      = app.BoolOpt("d debug", false, "output debug information")
+		logDevice  = app.StringOpt("device", "/dev/stderr", "send log output to a block device, e.g. /dev/stderr")
+		logDir     = app.StringOpt("log-dir", "", "rotate log output to a directory, e.g. /var/log/gaffer")
+		maxLogSize = app.IntOpt("max-log-size", 1, "maximum log file size in mb")
+		maxBackups = app.IntOpt("max-backups", 2, "maximum number of backups to rotate")
+		compress   = app.BoolOpt("compress-log", true, "compress rotated log files")
 	)
 	app.Before = func() {
-		// Enable JSON logging output
-		if *json {
-			log.Json()
+		config := log.Config{
+			JSON:       *json,
+			Debug:      *debug,
+			Device:     *logDevice,
+			LogDir:     *logDir,
+			MaxSize:    *maxLogSize,
+			MaxBackups: *maxBackups,
+			Compress:   *compress,
 		}
-		// Enable debugging with dev features
-		if *debug {
-			log.Level.SetLevel(zap.DebugLevel)
-			log.Debug()
-		}
-		// Change log output from stderr to a file
-		if *logPath != "" {
-			log.Output(*logPath)
-		}
+		// Initialize the logger
+		maybe(log.Setup(config))
 	}
 	app.Command("config", "modify a cluster config", configCMD(json))
 	app.Command("init", "launch the Gaffer init process", initCMD())
