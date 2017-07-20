@@ -69,11 +69,12 @@ func Setup(config Config) error {
 		encoderConfig = zap.NewProductionEncoderConfig()
 		level = zapcore.InfoLevel
 	}
-	// Pretty colors if logging to console
-	encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	if config.JSON {
+		encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
 		encoder = zapcore.NewJSONEncoder(encoderConfig)
 	} else {
+		// Pretty colors if logging to console
+		encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 		encoder = zapcore.NewConsoleEncoder(encoderConfig)
 	}
 	cores := []zapcore.Core{}
