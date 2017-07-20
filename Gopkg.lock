@@ -73,6 +73,12 @@
   revision = "14207d285c6c197daabb5c9793d63e7af9ab2d50"
 
 [[projects]]
+  name = "github.com/natefinch/lumberjack"
+  packages = ["."]
+  revision = "a96e63847dc3c67d17befa69c303767e2f84e54f"
+  version = "v2.1"
+
+[[projects]]
   branch = "master"
   name = "github.com/opencontainers/runtime-spec"
   packages = ["specs-go"]
@@ -135,6 +141,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c31d30ed88ff7a46497d0bace745c1ab696e463cf9807dad82418b1563c98c22"
+  inputs-digest = "07288e29592afe8e383886a8c354d9bff949a30522fe3899efa2ba1d2ea437ff"
   solver-name = "gps-cdcl"
   solver-version = 1
