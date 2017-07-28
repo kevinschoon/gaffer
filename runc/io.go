@@ -9,13 +9,10 @@ import (
 	"io"
 )
 
-// TODO: Catch write errors
-// TODO: Close log files
-// TODO: Propigate errors back
 type IO struct {
-	id  string
-	rio runc.IO
-	tee bool
+	id    string
+	rio   runc.IO
+	debug bool
 }
 
 func (i *IO) Start() {
@@ -55,6 +52,5 @@ func NewIO(id string) (*IO, error) {
 	return &IO{
 		id:  id,
 		rio: rio,
-		tee: true,
 	}, nil
 }

@@ -5,11 +5,15 @@ import (
 	"github.com/jawher/mow.cli"
 	"github.com/vektorlab/gaffer/log"
 	"github.com/vektorlab/gaffer/version"
+	"go.uber.org/zap"
 	"os"
 )
 
 func maybe(err error) {
 	if err != nil {
+		if log.Log != nil {
+			log.Log.Error("gaffer encountered an un-recoverable error", zap.Error(err))
+		}
 		fmt.Printf("Error: %s\n", err.Error())
 		os.Exit(1)
 	}

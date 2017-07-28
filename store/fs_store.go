@@ -33,8 +33,9 @@ func (s FSStore) services(path string) ([]*service.Service, error) {
 	svcs := []*service.Service{}
 	for _, dir := range dirs {
 		bundle := filepath.Join(path, dir.Name())
+		cfgPath := filepath.Join(bundle, "config.json")
 		log.Log.Debug(fmt.Sprintf("loading service from dir %s", bundle))
-		raw, err := ioutil.ReadFile(filepath.Join(bundle, "config.json"))
+		raw, err := ioutil.ReadFile(cfgPath)
 		if err != nil {
 			return nil, err
 		}
@@ -44,15 +45,26 @@ func (s FSStore) services(path string) ([]*service.Service, error) {
 		if err != nil {
 			return nil, err
 		}
+		var modified bool
 		envs, err := loadEnvs(filepath.Join(s.ConfigPath, svc.Id, "envs.json"))
 		if err == nil {
+			modified = true
 			for key, value := range envs {
+				log.Log.Debug(fmt.Sprintf("updating environment variable %s=%s", key, value))
 				spec.Process.Env = append(spec.Process.Env, fmt.Sprintf("%s=%s", key, value))
 			}
 			raw, _ = json.Marshal(spec)
 			log.Log.Debug(fmt.Sprintf("environment for service %s updated from local config", svc.Id))
 		} else {
 			log.Log.Debug(fmt.Sprintf("could not load environment from local config: %s", err.Error()))
+		}
+		if modified {
+			// Write out updated configuration
+			log.Log.Debug(fmt.Sprintf("re-writing updated bundle config %s", cfgPath))
+			err = ioutil.WriteFile(cfgPath, raw, 0644)
+			if err != nil {
+				return nil, err
+			}
 		}
 		log.Log.Debug("loaded service bundle", zap.Any("spec", spec))
 		svc.Spec = &any.Any{Value: raw}

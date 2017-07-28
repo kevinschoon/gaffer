@@ -18,7 +18,7 @@ func initCMD() func(*cli.Cmd) {
 			hard       = cmd.BoolOpt("h hard", false, "fail hard")
 			once       = cmd.BoolOpt("o once", false, "run the services only once, synchronously")
 			port       = cmd.IntOpt("p port", 10000, "port to listen on")
-			configPath = cmd.StringArg("c configPath", "/var/config", "service configuration path")
+			configPath = cmd.StringArg("c configPath", "/var/mesanine", "service configuration path")
 		)
 		cmd.Spec = "[OPTIONS] [PATH]"
 		cmd.Action = func() {
