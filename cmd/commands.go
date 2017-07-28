@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/jawher/mow.cli"
+	"github.com/vektorlab/gaffer/fatal"
 	"github.com/vektorlab/gaffer/log"
 	"github.com/vektorlab/gaffer/version"
 	"go.uber.org/zap"
@@ -13,8 +14,10 @@ func maybe(err error) {
 	if err != nil {
 		if log.Log != nil {
 			log.Log.Error("gaffer encountered an un-recoverable error", zap.Error(err))
+		} else {
+			fmt.Printf("Error: %s\n", err.Error())
 		}
-		fmt.Printf("Error: %s\n", err.Error())
+		fatal.Fatal()
 		os.Exit(1)
 	}
 }
@@ -31,6 +34,7 @@ func Run() {
 		maxLogSize = app.IntOpt("max-log-size", 1, "maximum log file size in mb")
 		maxBackups = app.IntOpt("max-backups", 2, "maximum number of backups to rotate")
 		compress   = app.BoolOpt("compress-log", true, "compress rotated log files")
+		failHard   = app.BoolOpt("h hard", false, "fail hard")
 	)
 	app.Before = func() {
 		config := log.Config{
@@ -44,6 +48,7 @@ func Run() {
 		}
 		// Initialize the logger
 		maybe(log.Setup(config))
+		fatal.FailHard = *failHard
 	}
 	app.Command("config", "modify a cluster config", configCMD(json))
 	app.Command("init", "launch the Gaffer init process", initCMD())

@@ -1,13 +1,16 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/jawher/mow.cli"
 	"github.com/vektorlab/gaffer/config"
+	"github.com/vektorlab/gaffer/fatal"
 	"github.com/vektorlab/gaffer/host"
 	"github.com/vektorlab/gaffer/log"
 	"github.com/vektorlab/gaffer/runc"
 	"github.com/vektorlab/gaffer/store"
 	"github.com/vektorlab/gaffer/supervisor"
+	"go.uber.org/zap"
 	"os"
 )
 
@@ -15,13 +18,14 @@ func initCMD() func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
 			path       = cmd.StringArg("PATH", "/containers", "container init path")
-			hard       = cmd.BoolOpt("h hard", false, "fail hard")
+			failHard   = cmd.BoolOpt("h hard", false, "fail hard")
 			once       = cmd.BoolOpt("o once", false, "run the services only once, synchronously")
 			port       = cmd.IntOpt("p port", 10000, "port to listen on")
 			configPath = cmd.StringArg("c configPath", "/var/mesanine", "service configuration path")
 		)
 		cmd.Spec = "[OPTIONS] [PATH]"
 		cmd.Action = func() {
+			fatal.FailHard = *failHard
 			cfg := config.Config{
 				Store: config.Store{
 					BasePath:   *path,
@@ -34,12 +38,18 @@ func initCMD() func(*cli.Cmd) {
 				services, err := db.Services()
 				maybe(err)
 				for _, svc := range services {
-					_, err := runc.New(svc.Id, svc.Bundle, cfg).Run()
-					if err != nil {
-						if *hard {
-							maybe(err)
-						} else {
+					log.Log.Debug(fmt.Sprintf("launching service %s", svc.Id), zap.Any("service", svc))
+					code, err := runc.New(svc.Id, svc.Bundle, cfg).Run()
+					log.Log.Info(fmt.Sprintf("service %s exited with code %d", svc.Id, code))
+					if err != nil || code != 0 {
+						if err != nil {
 							log.Log.Error(err.Error())
+						}
+						if *failHard {
+							if err == nil {
+								err = fmt.Errorf("service exited with %d", code)
+							}
+							maybe(err)
 						}
 					}
 				}
