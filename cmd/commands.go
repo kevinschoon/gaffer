@@ -55,7 +55,5 @@ func Run() {
 	app.Command("restart", "restart a local service", restartCMD(json))
 	app.Command("server", "run a gaffer HTTP proxy and UI", serverCMD())
 	app.Command("status", "output the status of local services", statusCMD(json))
-	app.Command("wait", "wait for a file to exist", waitCMD())
-
 	maybe(app.Run(os.Args))
 }
