@@ -12,7 +12,9 @@ type Store struct {
 	ConfigPath string
 }
 
-type Runc struct{}
+type Runc struct {
+	Root string
+}
 
 type Server struct {
 	Pattern string

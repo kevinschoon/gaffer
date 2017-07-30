@@ -38,7 +38,7 @@ func (rc *Runc) Delete() error {
 func (rc *Runc) Run() (int, error) {
 	io, err := NewIO(rc.id)
 	if err != nil {
-		return 0, err
+		return -1, err
 	}
 	rc.io = io
 	defer func() {
@@ -81,7 +81,7 @@ func New(id, bundle string, cfg config.Config) *Runc {
 	rc := &Runc{
 		id:     id,
 		bundle: bundle,
-		rc:     &runc.Runc{},
+		rc:     &runc.Runc{Root: cfg.Runc.Root},
 	}
 	return rc
 }

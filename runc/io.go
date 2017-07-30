@@ -7,6 +7,7 @@ import (
 	"github.com/vektorlab/gaffer/log"
 	"go.uber.org/zap"
 	"io"
+	"os"
 )
 
 type IO struct {
@@ -45,7 +46,7 @@ func (i *IO) Close() error {
 }
 
 func NewIO(id string) (*IO, error) {
-	rio, err := runc.NewPipeIO(0, 0)
+	rio, err := runc.NewPipeIO(os.Getuid(), os.Getgid())
 	if err != nil {
 		return nil, err
 	}

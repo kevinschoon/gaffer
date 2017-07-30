@@ -17,21 +17,22 @@ import (
 func initCMD() func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
+			root       = cmd.StringOpt("root", "/run/runc", "runc root path")
 			path       = cmd.StringArg("PATH", "/containers", "container init path")
-			failHard   = cmd.BoolOpt("h hard", false, "fail hard")
 			once       = cmd.BoolOpt("o once", false, "run the services only once, synchronously")
 			port       = cmd.IntOpt("p port", 10000, "port to listen on")
-			configPath = cmd.StringArg("c configPath", "/var/mesanine", "service configuration path")
+			configPath = cmd.StringOpt("c configPath", "/var/mesanine", "service configuration path")
 		)
 		cmd.Spec = "[OPTIONS] [PATH]"
 		cmd.Action = func() {
-			fatal.FailHard = *failHard
 			cfg := config.Config{
 				Store: config.Store{
 					BasePath:   *path,
 					ConfigPath: *configPath,
 				},
-				Runc: config.Runc{},
+				Runc: config.Runc{
+					Root: *root,
+				},
 			}
 			db := store.NewFSStore(cfg)
 			if *once {
@@ -41,17 +42,10 @@ func initCMD() func(*cli.Cmd) {
 					log.Log.Debug(fmt.Sprintf("launching service %s", svc.Id), zap.Any("service", svc))
 					code, err := runc.New(svc.Id, svc.Bundle, cfg).Run()
 					log.Log.Info(fmt.Sprintf("service %s exited with code %d", svc.Id, code))
-					if err != nil || code != 0 {
-						if err != nil {
-							log.Log.Error(err.Error())
-						}
-						if *failHard {
-							if err == nil {
-								err = fmt.Errorf("service exited with %d", code)
-							}
-							maybe(err)
-						}
+					if code != 0 {
+						fatal.Fatal()
 					}
+					maybe(err)
 				}
 			} else {
 				services, err := db.Services()
