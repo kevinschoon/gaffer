@@ -29,7 +29,7 @@
   branch = "master"
   name = "github.com/containerd/go-runc"
   packages = ["."]
-  revision = "5d38580d03f4fbf2f09b2b0065deeeaf8d21aac2"
+  revision = "2774a2ea124a5c2d0aba13b5c2dd8a5a9a48775d"
 
 [[projects]]
   name = "github.com/go-ini/ini"
@@ -141,6 +141,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "07288e29592afe8e383886a8c354d9bff949a30522fe3899efa2ba1d2ea437ff"
+  inputs-digest = "5873b0523e748aa3f9817d3174076f81f740a8d4529de9d2b16d45fba8d30b4f"
   solver-name = "gps-cdcl"
   solver-version = 1
