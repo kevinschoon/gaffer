@@ -25,7 +25,7 @@ type FSStore struct {
 	mu         sync.RWMutex
 }
 
-func (s FSStore) services(path string) ([]*service.Service, error) {
+func (s *FSStore) services(path string) ([]*service.Service, error) {
 	dirs, err := ioutil.ReadDir(path)
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func (s FSStore) services(path string) ([]*service.Service, error) {
 	return svcs, nil
 }
 
-func (s FSStore) Services() ([]*service.Service, error) {
+func (s *FSStore) Services() ([]*service.Service, error) {
 	return s.services(s.BasePath)
 }
 
