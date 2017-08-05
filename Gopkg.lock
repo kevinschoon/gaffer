@@ -8,12 +8,6 @@
   revision = "19f72df4d05d31cbe1c56bfc8045c96babff6c7e"
 
 [[projects]]
-  name = "github.com/aws/aws-sdk-go"
-  packages = ["aws","aws/awserr","aws/awsutil","aws/client","aws/client/metadata","aws/corehandlers","aws/credentials","aws/credentials/ec2rolecreds","aws/credentials/endpointcreds","aws/credentials/stscreds","aws/defaults","aws/ec2metadata","aws/endpoints","aws/request","aws/session","aws/signer/v4","internal/shareddefaults","private/protocol","private/protocol/query","private/protocol/query/queryutil","private/protocol/rest","private/protocol/restxml","private/protocol/xml/xmlutil","service/s3","service/s3/s3iface","service/s3/s3manager","service/sts"]
-  revision = "47ba3b0518c83189f3a1c95d20fc22f267e02ed3"
-  version = "v1.8.41"
-
-[[projects]]
   branch = "master"
   name = "github.com/cenkalti/backoff"
   packages = ["."]
@@ -32,12 +26,6 @@
   revision = "2774a2ea124a5c2d0aba13b5c2dd8a5a9a48775d"
 
 [[projects]]
-  name = "github.com/go-ini/ini"
-  packages = ["."]
-  revision = "afbd495e5aaea13597b5e14fe514ddeaa4d76fc3"
-  version = "v1.8.6"
-
-[[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
   packages = ["proto","protoc-gen-go/descriptor","ptypes/any"]
@@ -54,11 +42,6 @@
   name = "github.com/jawher/mow.cli"
   packages = ["."]
   revision = "d3ffbc2f98b83e09dc8efd55ecec75eb5fd656ec"
-
-[[projects]]
-  name = "github.com/jmespath/go-jmespath"
-  packages = ["."]
-  revision = "c01cf91b011868172fdcd9f41838e80c9d716264"
 
 [[projects]]
   branch = "master"
@@ -141,6 +124,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5873b0523e748aa3f9817d3174076f81f740a8d4529de9d2b16d45fba8d30b4f"
+  inputs-digest = "c5b5da067da7b61bd4df93efa94a3b3a7e05e1ebf98dea481340f6faf85875d7"
   solver-name = "gps-cdcl"
   solver-version = 1
