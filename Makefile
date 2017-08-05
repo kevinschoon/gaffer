@@ -6,13 +6,13 @@ GITSHA ?= $(shell git rev-parse HEAD)
 VERSION ?= $(shell git describe --tags 2>/dev/null)
 PACKAGES ?= $(shell go list ./...|grep -v vendor | grep -v tests)
 LDFLAGS ?= -w -s -X $(VERSION_PATH).Version=$(VERSION) -X $(VERSION_PATH).GitSHA=$(GITSHA)
-DOCKER := docker run --rm -v $(SRCPATH):/go/src/github.com/mesanine/gaffer --workdir /go/src/github.com/mesanine/gaffer quay.io/vektorcloud/go:dep
 
-.PHONY: all docker protos bindata
+.PHONY: all bindata dep docker protos test
 
-all: build
+all: protos bindata test build
 
-.PHONY: test
+ci: dep all
+
 test:
 	go $@ -v $(PACKAGES)
 	go vet $(PACKAGES)
@@ -20,8 +20,10 @@ test:
 bindata:
 	go-bindata -pkg server -o server/bindata.go www/...
 
+dep:
+	dep ensure
+
 protos: 
-	@echo $(GOPATH) $(SRCPATH)
 	rm -v supervisor/*.pb.go 2>/dev/null || true
 	rm -v host/*.pb.go 2>/dev/null || true
 	rm -v service/*.pb.go 2>/dev/null || true
@@ -29,7 +31,7 @@ protos:
 	protoc --proto_path=$(GOPATH)/src --go_out=$(GOPATH)/src $(GOPATH)/$(SRCPATH)/host/*.proto
 	protoc --proto_path=$(GOPATH)/src --go_out=$(GOPATH)/src $(GOPATH)/$(SRCPATH)/service/*.proto
 
-build: protos bindata
+build:
 	mkdir -v ./bin 2>/dev/null || true
 	GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o ./bin/gaffer
 

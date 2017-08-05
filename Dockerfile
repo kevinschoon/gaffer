@@ -12,7 +12,7 @@ RUN mkdir -p /go/src/github.com/golang \
 COPY . /go/src/github.com/mesanine/gaffer
 
 RUN cd /go/src/github.com/mesanine/gaffer \
-  && make 
+  && make ci 
 
 FROM quay.io/vektorcloud/base:3.6 
 
