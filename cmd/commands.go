@@ -25,7 +25,7 @@ func maybe(err error) {
 func Run() {
 	app := cli.App("gaffer", "Distributed Init System")
 	app.Spec = "[OPTIONS]"
-	app.Version("version", fmt.Sprintf("%s (%s)", version.Version, version.GitSHA))
+	app.Version("version", fmt.Sprintf("version=%s\ngitsha=%s", version.Version, version.GitSHA))
 	var (
 		json       = app.BoolOpt("json", false, "enables json log output")
 		debug      = app.BoolOpt("d debug", false, "output debug information")
