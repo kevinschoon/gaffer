@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/gosuri/uitable"
 	"github.com/jawher/mow.cli"
-	"github.com/vektorlab/gaffer/host"
+	"github.com/mesanine/gaffer/host"
 	"io/ioutil"
 	"os"
 )

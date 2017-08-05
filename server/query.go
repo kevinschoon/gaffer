@@ -3,7 +3,7 @@ package server
 import (
 	"encoding/json"
 	"github.com/julienschmidt/httprouter"
-	"github.com/vektorlab/gaffer/host"
+	"github.com/mesanine/gaffer/host"
 	"net/http"
 )
 

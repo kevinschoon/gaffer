@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"github.com/jawher/mow.cli"
-	"github.com/vektorlab/gaffer/config"
-	"github.com/vektorlab/gaffer/host"
-	"github.com/vektorlab/gaffer/server"
+	"github.com/mesanine/gaffer/config"
+	"github.com/mesanine/gaffer/host"
+	"github.com/mesanine/gaffer/server"
 )
 
 func serverCMD() func(*cli.Cmd) {

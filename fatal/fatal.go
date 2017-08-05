@@ -1,7 +1,7 @@
 package fatal
 
 import (
-	"github.com/vektorlab/gaffer/log"
+	"github.com/mesanine/gaffer/log"
 	"os"
 )
 

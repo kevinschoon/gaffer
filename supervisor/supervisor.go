@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/cenkalti/backoff"
-	"github.com/vektorlab/gaffer/config"
-	"github.com/vektorlab/gaffer/log"
-	"github.com/vektorlab/gaffer/runc"
-	"github.com/vektorlab/gaffer/service"
+	"github.com/mesanine/gaffer/config"
+	"github.com/mesanine/gaffer/log"
+	"github.com/mesanine/gaffer/runc"
+	"github.com/mesanine/gaffer/service"
 	"time"
 )
 

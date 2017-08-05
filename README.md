@@ -5,8 +5,8 @@ It is designed to control daemon processes like those that compose [Apache Mesos
 
 ## Building
 
-    go get github.com/vektorlab/gaffer
-    cd $GOPATH/src/github.com/vektorlab/gaffer
+    go get github.com/mesanine/gaffer
+    cd $GOPATH/src/github.com/mesanine/gaffer
     make
 
 

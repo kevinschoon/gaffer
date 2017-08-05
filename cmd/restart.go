@@ -3,8 +3,8 @@ package cmd
 import (
 	"encoding/json"
 	"github.com/jawher/mow.cli"
-	"github.com/vektorlab/gaffer/host"
-	"github.com/vektorlab/gaffer/supervisor"
+	"github.com/mesanine/gaffer/host"
+	"github.com/mesanine/gaffer/supervisor"
 	"golang.org/x/net/context"
 	"os"
 )

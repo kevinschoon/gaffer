@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/vektorlab/gaffer/cmd"
+	"github.com/mesanine/gaffer/cmd"
 )
 
 func main() { cmd.Run() }

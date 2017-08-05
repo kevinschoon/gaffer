@@ -3,8 +3,8 @@ package runc
 import (
 	"context"
 	"github.com/containerd/go-runc"
-	"github.com/vektorlab/gaffer/config"
-	"github.com/vektorlab/gaffer/log"
+	"github.com/mesanine/gaffer/config"
+	"github.com/mesanine/gaffer/log"
 	"go.uber.org/zap"
 	"syscall"
 	"time"

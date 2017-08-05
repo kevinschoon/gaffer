@@ -2,8 +2,8 @@ package supervisor
 
 import (
 	"fmt"
-	"github.com/vektorlab/gaffer/host"
-	"github.com/vektorlab/gaffer/log"
+	"github.com/mesanine/gaffer/host"
+	"github.com/mesanine/gaffer/log"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"

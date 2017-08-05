@@ -3,9 +3,9 @@ package cmd
 import (
 	"fmt"
 	"github.com/jawher/mow.cli"
-	"github.com/vektorlab/gaffer/fatal"
-	"github.com/vektorlab/gaffer/log"
-	"github.com/vektorlab/gaffer/version"
+	"github.com/mesanine/gaffer/fatal"
+	"github.com/mesanine/gaffer/log"
+	"github.com/mesanine/gaffer/version"
 	"go.uber.org/zap"
 	"os"
 )
