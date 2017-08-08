@@ -19,6 +19,14 @@ func (s *Service) Hash() string {
 	return fmt.Sprintf("%x", md5.Sum(r))
 }
 
+func (s *Service) ReadOnly() (bool, error) {
+	spec, err := s.UnmarshalSpec()
+	if err != nil {
+		return false, err
+	}
+	return spec.Root.Readonly, nil
+}
+
 func (s *Service) UnmarshalSpec() (*specs.Spec, error) {
 	spec := &specs.Spec{}
 	err := json.Unmarshal(s.Spec.Value, spec)

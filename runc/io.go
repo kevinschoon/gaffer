@@ -2,7 +2,6 @@ package runc
 
 import (
 	"bufio"
-	"fmt"
 	"github.com/containerd/go-runc"
 	"github.com/mesanine/gaffer/log"
 	"go.uber.org/zap"
@@ -18,7 +17,6 @@ type IO struct {
 
 func (i *IO) Start() {
 	logFn := func(stream string, rc io.ReadCloser) {
-		log.Log.Debug(fmt.Sprintf("Monitoring output from service %s", i.id))
 		scanner := bufio.NewScanner(rc)
 		for scanner.Scan() {
 			text := scanner.Text()
@@ -29,10 +27,12 @@ func (i *IO) Start() {
 				)
 				break
 			}
-			log.Log.Info(
-				i.id,
-				zap.String(stream, text),
-			)
+			switch stream {
+			case "stdout":
+				log.Log.Debug(i.id, zap.String("msg", text))
+			case "stderr":
+				log.Log.Error(i.id, zap.String("msg", text))
+			}
 		}
 	}
 	// stdout

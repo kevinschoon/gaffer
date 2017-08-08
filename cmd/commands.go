@@ -13,7 +13,7 @@ import (
 func maybe(err error) {
 	if err != nil {
 		if log.Log != nil {
-			log.Log.Error("gaffer encountered an un-recoverable error", zap.Error(err))
+			log.Log.Fatal("gaffer encountered an un-recoverable error", zap.Error(err))
 		} else {
 			fmt.Printf("Error: %s\n", err.Error())
 		}

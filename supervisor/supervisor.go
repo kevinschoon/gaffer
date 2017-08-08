@@ -22,7 +22,11 @@ type Supervisor struct {
 func New(services []*service.Service, cfg config.Config) (*Supervisor, error) {
 	runcs := map[string]*runc.Runc{}
 	for _, svc := range services {
-		runcs[svc.Id] = runc.New(svc.Id, svc.Bundle, cfg)
+		ro, err := svc.ReadOnly()
+		if err != nil {
+			return nil, err
+		}
+		runcs[svc.Id] = runc.New(svc.Id, svc.Bundle, ro, cfg)
 	}
 	return &Supervisor{runcs: runcs, config: cfg}, nil
 }

@@ -21,6 +21,7 @@ func initCMD() func(*cli.Cmd) {
 			path       = cmd.StringArg("PATH", "/containers", "container init path")
 			once       = cmd.BoolOpt("o once", false, "run the services only once, synchronously")
 			port       = cmd.IntOpt("p port", 10000, "port to listen on")
+			mount      = cmd.BoolOpt("m mounts", true, "handle overlay mounts")
 			configPath = cmd.StringOpt("c configPath", "/var/mesanine", "service configuration path")
 		)
 		cmd.Spec = "[OPTIONS] [PATH]"
@@ -31,7 +32,8 @@ func initCMD() func(*cli.Cmd) {
 					ConfigPath: *configPath,
 				},
 				Runc: config.Runc{
-					Root: *root,
+					Root:  *root,
+					Mount: *mount,
 				},
 			}
 			db := store.NewFSStore(cfg)
@@ -40,8 +42,10 @@ func initCMD() func(*cli.Cmd) {
 				maybe(err)
 				for _, svc := range services {
 					log.Log.Debug(fmt.Sprintf("launching service %s", svc.Id), zap.Any("service", svc))
-					code, err := runc.New(svc.Id, svc.Bundle, cfg).Run()
-					log.Log.Info(fmt.Sprintf("service %s exited with code %d", svc.Id, code))
+					ro, err := svc.ReadOnly()
+					maybe(err)
+					code, err := runc.New(svc.Id, svc.Bundle, ro, cfg).Run()
+					log.Log.Error(fmt.Sprintf("service %s exited with code %d", svc.Id, code))
 					if code != 0 {
 						fatal.Fatal()
 					}

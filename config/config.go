@@ -14,6 +14,9 @@ type Store struct {
 
 type Runc struct {
 	Root string
+	// Toggle if we should handle overlay
+	// mounts ourself.
+	Mount bool
 }
 
 type Server struct {
