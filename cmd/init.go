@@ -10,15 +10,14 @@ import (
 	"github.com/mesanine/gaffer/runc"
 	"github.com/mesanine/gaffer/store"
 	"github.com/mesanine/gaffer/supervisor"
-	"go.uber.org/zap"
 	"os"
 )
 
 func initCMD() func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
-			root       = cmd.StringOpt("root", "/run/runc", "runc root path")
 			path       = cmd.StringArg("PATH", "/containers", "container init path")
+			root       = cmd.StringOpt("root", "/run/runc", "runc root path")
 			once       = cmd.BoolOpt("o once", false, "run the services only once, synchronously")
 			port       = cmd.IntOpt("p port", 10000, "port to listen on")
 			mount      = cmd.BoolOpt("m mounts", true, "handle overlay mounts")
@@ -38,25 +37,28 @@ func initCMD() func(*cli.Cmd) {
 			}
 			db := store.NewFSStore(cfg)
 			if *once {
+				log.Log.Info(fmt.Sprintf("starting on-boot services from %s", *path))
 				services, err := db.Services()
 				maybe(err)
 				for _, svc := range services {
-					log.Log.Debug(fmt.Sprintf("launching service %s", svc.Id), zap.Any("service", svc))
 					ro, err := svc.ReadOnly()
 					maybe(err)
+					log.Log.Info(fmt.Sprintf("starting on-boot service %s", svc.Id))
 					code, err := runc.New(svc.Id, svc.Bundle, ro, cfg).Run()
-					log.Log.Error(fmt.Sprintf("service %s exited with code %d", svc.Id, code))
+					log.Log.Info(fmt.Sprintf("on-boot service %s exited with code %d", svc.Id, code))
 					if code != 0 {
 						fatal.Fatal()
 					}
 					maybe(err)
 				}
 			} else {
+				log.Log.Info(fmt.Sprintf("starting long-running services from %s", *path))
 				services, err := db.Services()
 				maybe(err)
+				log.Log.Info(fmt.Sprintf("creating supervisor for %d services", len(services)))
 				spv, err := supervisor.New(services, cfg)
 				maybe(err)
-				maybe(spv.Init())
+				spv.Init()
 				name, err := os.Hostname()
 				maybe(err)
 				maybe(supervisor.NewServer(spv, db, &host.Host{Name: name, Port: int32(*port)}).Listen())

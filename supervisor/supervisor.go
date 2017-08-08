@@ -31,14 +31,13 @@ func New(services []*service.Service, cfg config.Config) (*Supervisor, error) {
 	return &Supervisor{runcs: runcs, config: cfg}, nil
 }
 
-func (s *Supervisor) Init() error {
+func (s *Supervisor) Init() {
 	s.cancelCh = []chan bool{}
 	for id, rc := range s.runcs {
 		ch := make(chan bool)
 		s.cancelCh = append(s.cancelCh, ch)
 		go monitor(ch, MonitorFunc(id, rc))
 	}
-	return nil
 }
 
 func monitor(ch chan bool, fn func() error) {

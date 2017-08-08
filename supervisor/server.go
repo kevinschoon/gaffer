@@ -69,5 +69,6 @@ func (s *Server) Listen() error {
 	gs := grpc.NewServer()
 	RegisterSupervisorServer(gs, s)
 	reflection.Register(gs)
+	log.Log.Info(fmt.Sprintf("launching rpc server @ %s:%d", s.host.Name, s.host.Port))
 	return gs.Serve(listener)
 }

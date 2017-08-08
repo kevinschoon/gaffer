@@ -29,9 +29,9 @@ func (i *IO) Start() {
 			}
 			switch stream {
 			case "stdout":
-				log.Log.Debug(i.id, zap.String("msg", text))
+				log.Log.Debug(i.id, zap.String("stdout", text))
 			case "stderr":
-				log.Log.Error(i.id, zap.String("msg", text))
+				log.Log.Error(i.id, zap.String("stderr", text))
 			}
 		}
 	}
