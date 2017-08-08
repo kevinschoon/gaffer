@@ -45,7 +45,6 @@ func (rc *Runc) Mount() error {
 	}
 	log.Log.Info(fmt.Sprintf("mounting container bundle RW: %s", rc.bundle))
 	return prepareRW(rc.bundle)
-	return nil
 }
 
 func (rc *Runc) Unmount() error {
