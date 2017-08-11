@@ -4,7 +4,8 @@ import (
 	"github.com/jawher/mow.cli"
 	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/host"
-	"github.com/mesanine/gaffer/server"
+	"github.com/mesanine/gaffer/plugin"
+	server "github.com/mesanine/gaffer/plugin/http-server"
 )
 
 func serverCMD() func(*cli.Cmd) {
@@ -27,7 +28,9 @@ func serverCMD() func(*cli.Cmd) {
 			maybe(err)
 			svr, err := server.New(source, cfg)
 			maybe(err)
-			maybe(server.Run(svr))
+			reg := plugin.NewRegistry()
+			maybe(reg.Register(svr))
+			maybe(plugin.Run(reg))
 		}
 	}
 }

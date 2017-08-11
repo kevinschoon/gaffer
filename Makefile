@@ -4,7 +4,7 @@ VERSION_PATH ?= "github.com/mesanine/gaffer/version"
 GOPATH := $(shell echo $$GOPATH)
 GITSHA ?= $(shell git rev-parse HEAD)
 VERSION ?= $(shell git describe --tags 2>/dev/null)
-PACKAGES ?= $(shell go list ./...|grep -v vendor | grep -v tests)
+PACKAGES ?= $(shell go list ./...|grep -v vendor)
 LDFLAGS ?= -w -s -X $(VERSION_PATH).Version=$(VERSION) -X $(VERSION_PATH).GitSHA=$(GITSHA)
 
 .PHONY: all bindata dep docker protos test
@@ -30,6 +30,7 @@ protos:
 	protoc --proto_path=$(GOPATH)/src --go_out=plugins=grpc:$(GOPATH)/src $(GOPATH)/$(SRCPATH)/supervisor/*.proto
 	protoc --proto_path=$(GOPATH)/src --go_out=$(GOPATH)/src $(GOPATH)/$(SRCPATH)/host/*.proto
 	protoc --proto_path=$(GOPATH)/src --go_out=$(GOPATH)/src $(GOPATH)/$(SRCPATH)/service/*.proto
+	protoc --proto_path=$(GOPATH)/src --go_out=$(GOPATH)/src $(GOPATH)/$(SRCPATH)/event/*.proto
 
 build:
 	mkdir -v ./bin 2>/dev/null || true

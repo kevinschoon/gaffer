@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"github.com/mesanine/gaffer/config"
+	"github.com/mesanine/gaffer/event"
 	"github.com/mesanine/gaffer/host"
 	"github.com/mesanine/gaffer/log"
 	"github.com/mesanine/gaffer/supervisor"
@@ -19,6 +20,7 @@ type Server struct {
 	user    *user.User
 	client  *supervisor.ClientMux
 	pattern string
+	stop    chan bool
 }
 
 type HandleFunc func(http.ResponseWriter, *http.Request, httprouter.Params) error
@@ -55,14 +57,30 @@ func HandleWrapper(s *Server, fn HandleFunc) httprouter.Handle {
 	}
 }
 
-func Run(server *Server) error {
+func (s *Server) Name() string { return "gaffer.http-server" }
+
+func (s *Server) Run(_ *event.EventBus) error {
 	router := httprouter.New()
-	router.GET("/", HandleWrapper(server, server.HTML))
-	router.GET("/get", HandleWrapper(server, server.Get))
-	router.POST("/set", HandleWrapper(server, server.Set))
-	router.GET("/static/:dir/:file", HandleWrapper(server, server.Static))
-	log.Log.Info("server", zap.String("msg", fmt.Sprintf("Listening @%s", server.pattern)))
-	return http.ListenAndServe(server.pattern, router)
+	router.GET("/", HandleWrapper(s, s.HTML))
+	router.GET("/get", HandleWrapper(s, s.Get))
+	router.POST("/set", HandleWrapper(s, s.Set))
+	router.GET("/static/:dir/:file", HandleWrapper(s, s.Static))
+	log.Log.Info("server", zap.String("msg", fmt.Sprintf("Listening @%s", s.pattern)))
+	errCh := make(chan error)
+	go func(errCh chan error) {
+		errCh <- http.ListenAndServe(s.pattern, router)
+	}(errCh)
+	select {
+	case err := <-errCh:
+		return err
+	case <-s.stop:
+	}
+	return nil
+}
+
+func (s *Server) Stop() error {
+	s.stop <- true
+	return nil
 }
 
 func New(source host.Source, cfg config.Config) (*Server, error) {
@@ -79,5 +97,6 @@ func New(source host.Source, cfg config.Config) (*Server, error) {
 		user:    usr,
 		client:  supervisor.NewClientMux(source, host.Any()),
 		pattern: cfg.Server.Pattern,
+		stop:    make(chan bool, 1),
 	}, nil
 }

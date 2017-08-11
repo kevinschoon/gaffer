@@ -116,3 +116,8 @@ func Setup(config Config) error {
 	}
 	return nil
 }
+
+func init() {
+	// Noop logging by default (useful is importing as library for testing)
+	Log = zap.NewNop()
+}
