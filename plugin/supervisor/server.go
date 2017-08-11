@@ -1,5 +1,6 @@
 package supervisor
 
+/*
 import (
 	"encoding/json"
 	"fmt"
@@ -8,7 +9,7 @@ import (
 	"golang.org/x/net/context"
 	"net"
 
-	"github.com/mesanine/gaffer/host"
+	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/log"
 	"github.com/mesanine/gaffer/store"
 	"go.uber.org/zap"
@@ -17,18 +18,17 @@ import (
 )
 
 type Server struct {
-	host *host.Host
 	spv  *Supervisor
 	db   *store.FSStore
+	port int
 }
 
-func NewServer(spv *Supervisor, db *store.FSStore, host *host.Host) *Server {
-	return &Server{spv: spv, db: db, host: host}
+func NewServer(spv *Supervisor, cfg config.Config) *Server {
+	return &Server{spv: spv, db: store.NewFSStore(cfg), port: cfg.Supervisor.Port}
 }
 
 func (s *Server) Status(ctx context.Context, req *StatusRequest) (*StatusResponse, error) {
 	resp := &StatusResponse{
-		Host:     s.host,
 		Services: map[string]*service.Service{},
 		Stats:    map[string]*any.Any{},
 	}
@@ -62,13 +62,14 @@ func (s *Server) Restart(ctx context.Context, req *RestartRequest) (*RestartResp
 }
 
 func (s *Server) Listen() error {
-	listener, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", s.host.Port))
+	listener, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", s.port))
 	if err != nil {
 		return err
 	}
 	gs := grpc.NewServer()
 	RegisterSupervisorServer(gs, s)
 	reflection.Register(gs)
-	log.Log.Info(fmt.Sprintf("launching rpc server @ %s:%d", s.host.Name, s.host.Port))
+	log.Log.Info(fmt.Sprintf("launching rpc server @ 0.0.0.0:%d", s.port))
 	return gs.Serve(listener)
 }
+*/

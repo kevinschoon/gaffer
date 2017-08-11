@@ -1,5 +1,6 @@
 package supervisor
 
+/*
 import (
 	"fmt"
 	"github.com/mesanine/gaffer/host"
@@ -96,3 +97,4 @@ func NewClientMux(db host.Source, filters ...host.Filter) *ClientMux {
 	}
 	return mux
 }
+*/

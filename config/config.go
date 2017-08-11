@@ -1,10 +1,11 @@
 package config
 
 type Config struct {
-	Store  Store
-	Runc   Runc
-	Server Server
-	User   User
+	Store      Store
+	Runc       Runc
+	Server     Server
+	User       User
+	Supervisor Supervisor
 }
 
 type Store struct {
@@ -17,6 +18,10 @@ type Runc struct {
 	// Toggle if we should handle overlay
 	// mounts ourself.
 	Mount bool
+}
+
+type Supervisor struct {
+	Port int
 }
 
 type Server struct {

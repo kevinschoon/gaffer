@@ -1,5 +1,6 @@
 package supervisor
 
+/*
 import (
 	"encoding/json"
 	"github.com/containerd/go-runc"
@@ -16,3 +17,4 @@ func (s *StatusResponse) UnmarshalStats() (map[string]*runc.Stats, error) {
 	}
 	return statsMap, nil
 }
+*/

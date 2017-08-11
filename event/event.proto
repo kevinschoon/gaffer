@@ -3,6 +3,10 @@ syntax = "proto3";
 package event;
 
 message Event {
+  // Optional string matching the ID of a service
   string id = 1;
-  int64 time = 2;
+  // EventType
+  string type = 2;
+  // Epoch time the event occurred
+  int64 time = 3;
 }
