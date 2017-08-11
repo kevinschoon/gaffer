@@ -88,7 +88,13 @@ func (rc *Runc) Stop() error {
 		context.Background(),
 		rc.id,
 		int(syscall.SIGKILL),
-		&runc.KillOpts{All: true},
+		// TODO: On my system running
+		// "rootless" the --all flag
+		// has the effect of bleeding
+		// into all my other user processes
+		// killing the entire desktop!
+		// Unsure exactly what the cause is.
+		&runc.KillOpts{All: false},
 	)
 }
 

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/mesanine/gaffer/event"
 	"github.com/mesanine/gaffer/log"
+	"os"
+	"os/signal"
 )
 
 // Plugin implements some unit of work
@@ -44,6 +46,7 @@ func NewRegistry() Registry {
 // all plugins have returned. If any plugin
 // returns an error the function returns
 // immediately.
+// TODO Catch signals
 func Run(registry Registry) error {
 	eb := event.NewEventBus()
 	eb.Start()
@@ -58,7 +61,7 @@ func Run(registry Registry) error {
 		eb.Subscribe(sub)
 		evtCh := sub.Chan()
 		for evt := range evtCh {
-			if evt.Type() == event.SHUTDOWN {
+			if evt.Is(event.SHUTDOWN) {
 				for name, plugin := range registry {
 					log.Log.Warn(fmt.Sprintf("shutting down plugin %s", name))
 					errCh <- plugin.Stop()
@@ -66,6 +69,15 @@ func Run(registry Registry) error {
 			}
 		}
 	}(errCh, eb)
+	sigCh := make(chan os.Signal, 1)
+	// TODO: Which other signals might we encounter?
+	signal.Notify(sigCh, os.Interrupt, os.Kill)
+	go func(eb *event.EventBus) {
+		sig := <-sigCh
+		log.Log.Warn(fmt.Sprintf("caught signal %s", sig.String()))
+		// Signal we are shutting down
+		eb.Push(event.New(event.SHUTDOWN))
+	}(eb)
 	// Launch each plugin in the registry
 	for name, plugin := range registry {
 		log.Log.Info(fmt.Sprintf("launching plugin %s", name))

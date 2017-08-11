@@ -40,6 +40,7 @@ func New(cfg config.Config) (*Supervisor, error) {
 		runcs:  runcs,
 		cancel: map[string]context.CancelFunc{},
 		err:    make(chan error),
+		stop:   make(chan bool),
 		config: cfg,
 	}, nil
 }
@@ -47,6 +48,39 @@ func New(cfg config.Config) (*Supervisor, error) {
 func (s *Supervisor) Name() string { return "gaffer.supervisor" }
 
 func (s *Supervisor) Run(eb *event.EventBus) error {
+	// Launch all registered containers
+	s.init(eb)
+	for {
+		log.Log.Info("supervisor waiting for new events")
+		select {
+		case <-s.stop:
+			log.Log.Warn("supervisor is shutdown")
+			return nil
+		}
+	}
+	return nil
+}
+
+func (s *Supervisor) Stop() error {
+	for name, cancelFn := range s.cancel {
+		// Cancel each runc backoff context
+		// causing each container to not be
+		// restarted when killed.
+		cancelFn()
+		if err := s.runcs[name].Stop(); err != nil {
+			// If we can't stop a container we will log it but continue
+			// trying since the entire process is being shutdown.
+			log.Log.Error(fmt.Sprintf("failed to cancel service %s: %s", name, err.Error()))
+		} else {
+			log.Log.Warn(fmt.Sprintf("killed service %s", name))
+		}
+	}
+	// Signial stop to the Run() function
+	s.stop <- true
+	return nil
+}
+
+func (s *Supervisor) init(eb *event.EventBus) {
 	for name, rc := range s.runcs {
 		if _, ok := s.cancel[name]; ok {
 			panic(fmt.Sprintf("container %s was already registered", name))
@@ -81,13 +115,7 @@ func (s *Supervisor) Run(eb *event.EventBus) error {
 			)
 		}(ctx, rc, name)
 	}
-	<-s.stop
-	return nil
-}
 
-func (s *Supervisor) Stop() error {
-	s.stop <- true
-	return nil
 }
 
 // MonitorFuncs returns backoff.Operation and backoff.Notify
