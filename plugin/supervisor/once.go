@@ -25,7 +25,7 @@ func Once(cfg config.Config) error {
 		log.Log.Info(fmt.Sprintf("on-boot service %s exited with code %d", svc.Id, code))
 		if code != 0 || err != nil {
 			if err == nil {
-				return fmt.Errorf("service %s returned a non-zero exit code %d", code)
+				return fmt.Errorf("service %s returned a non-zero exit code %d", svc.Id, code)
 			}
 			return err
 		}

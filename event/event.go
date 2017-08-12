@@ -1,6 +1,10 @@
 package event
 
-import "time"
+import (
+	"encoding/json"
+	"github.com/containerd/go-runc"
+	"time"
+)
 
 // EventType indicates the type of event
 type EventType string
@@ -8,11 +12,13 @@ type EventType string
 const (
 	// Indicates recieving plugins
 	// should be shutdown.
-	SHUTDOWN = EventType("SHUTDOWN")
+	REQUEST_SHUTDOWN = EventType("REQUEST_SHUTDOWN")
 	// Service has started
 	SERVICE_STARTED = EventType("SERVICE_STARTED")
 	// Service has exited
 	SERVICE_EXITED = EventType("SERVICE_EXITED")
+	// Broadcasted runtime metrics
+	SERVICE_METRICS = EventType("SERVICE_METRICS")
 )
 
 type Option func(Event) Event
@@ -20,9 +26,24 @@ type Option func(Event) Event
 func WithID(id string) Option {
 	return func(e Event) Event {
 		return Event{
-			Id:   id,
-			Type: e.Type,
-			Time: e.Time,
+			Id:    id,
+			Type:  e.Type,
+			Time:  e.Time,
+			Stats: e.Stats,
+			Spec:  e.Spec,
+		}
+	}
+}
+
+func WithStats(stats runc.Stats) Option {
+	return func(e Event) Event {
+		raw, _ := json.Marshal(stats)
+		return Event{
+			Stats: raw,
+			Id:    e.Id,
+			Type:  e.Type,
+			Time:  e.Time,
+			Spec:  e.Spec,
 		}
 	}
 }

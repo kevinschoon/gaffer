@@ -9,4 +9,8 @@ message Event {
   string type = 2;
   // Epoch time the event occurred
   int64 time = 3;
+  // JSON encoded stats
+  bytes stats = 4;
+  // JSON encoded service spec
+  bytes spec = 5;
 }

@@ -29,7 +29,7 @@ func (s *Service) ReadOnly() (bool, error) {
 
 func (s *Service) UnmarshalSpec() (*specs.Spec, error) {
 	spec := &specs.Spec{}
-	err := json.Unmarshal(s.Spec.Value, spec)
+	err := json.Unmarshal(s.Spec, spec)
 	if err != nil {
 		return nil, err
 	}

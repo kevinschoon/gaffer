@@ -3,6 +3,7 @@ package fatal
 import (
 	"github.com/mesanine/gaffer/log"
 	"os"
+	"time"
 )
 
 const msg = `
@@ -26,6 +27,7 @@ var FailHard bool
 func Fatal() {
 	if FailHard {
 		log.Log.Error(msg)
+		time.Sleep(10 * time.Second)
 		if os.Getuid() == 0 {
 			fd, _ := os.OpenFile("/proc/sysrq-trigger", os.O_WRONLY, 0)
 			if fd != nil {

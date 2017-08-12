@@ -50,10 +50,6 @@ func Run() {
 		maybe(log.Setup(config))
 		fatal.FailHard = *failHard
 	}
-	app.Command("config", "modify a cluster config", configCMD(json))
 	app.Command("init", "launch the Gaffer init process", initCMD())
-	app.Command("restart", "restart a local service", restartCMD(json))
-	app.Command("server", "run a gaffer HTTP proxy and UI", serverCMD())
-	app.Command("status", "output the status of local services", statusCMD(json))
 	maybe(app.Run(os.Args))
 }

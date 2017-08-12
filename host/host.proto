@@ -2,7 +2,11 @@ syntax = "proto3";
 
 package host;
 
+// Host is a unqiue server within a Gaffer cluster.
 message Host {
+  // Server hostname
   string name = 1;
-  int32 port = 2;
+  // Server IP address
+  string address = 2;
+  int32 port = 3;
 }

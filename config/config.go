@@ -3,9 +3,9 @@ package config
 type Config struct {
 	Store      Store
 	Runc       Runc
-	Server     Server
+	RPCServer  RPCServer
+	HTTPServer HTTPServer
 	User       User
-	Supervisor Supervisor
 }
 
 type Store struct {
@@ -20,12 +20,12 @@ type Runc struct {
 	Mount bool
 }
 
-type Supervisor struct {
+type RPCServer struct {
 	Port int
 }
 
-type Server struct {
-	Pattern string
+type HTTPServer struct {
+	Port int
 }
 
 type User struct {

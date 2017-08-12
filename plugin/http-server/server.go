@@ -7,7 +7,6 @@ import (
 	"github.com/mesanine/gaffer/event"
 	"github.com/mesanine/gaffer/host"
 	"github.com/mesanine/gaffer/log"
-	"github.com/mesanine/gaffer/supervisor"
 	"github.com/mesanine/gaffer/user"
 	"go.uber.org/zap"
 	"net/http"
@@ -15,12 +14,17 @@ import (
 	"time"
 )
 
+type Status struct {
+	Events int
+}
+
 type Server struct {
-	source  host.Source
-	user    *user.User
-	client  *supervisor.ClientMux
-	pattern string
-	stop    chan bool
+	source host.Source
+	user   *user.User
+	port   int
+	stop   chan bool
+	status Status
+	config config.Config
 }
 
 type HandleFunc func(http.ResponseWriter, *http.Request, httprouter.Params) error
@@ -59,23 +63,31 @@ func HandleWrapper(s *Server, fn HandleFunc) httprouter.Handle {
 
 func (s *Server) Name() string { return "gaffer.http-server" }
 
-func (s *Server) Run(_ *event.EventBus) error {
+func (s *Server) Run(eb *event.EventBus) error {
 	router := httprouter.New()
-	router.GET("/", HandleWrapper(s, s.HTML))
-	router.GET("/get", HandleWrapper(s, s.Get))
-	router.POST("/set", HandleWrapper(s, s.Set))
+	router.GET("/status", HandleWrapper(s, s.Status))
 	router.GET("/static/:dir/:file", HandleWrapper(s, s.Static))
-	log.Log.Info("server", zap.String("msg", fmt.Sprintf("Listening @%s", s.pattern)))
+	log.Log.Info(fmt.Sprintf("HTTP server listening @0.0.0.0:%d", s.port))
 	errCh := make(chan error)
 	go func(errCh chan error) {
-		errCh <- http.ListenAndServe(s.pattern, router)
+		errCh <- http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", s.port), router)
 	}(errCh)
-	select {
-	case err := <-errCh:
-		return err
-	case <-s.stop:
+	sub := event.NewSubscriber()
+	eb.Subscribe(sub)
+	evtCh := sub.Chan()
+	for {
+		select {
+		case <-evtCh:
+			// TODO: Basically pointless right now. Will
+			// eventually populate a web UI with the status
+			// of each service.
+			s.status.Events++
+		case err := <-errCh:
+			return err
+		case <-s.stop:
+			return nil
+		}
 	}
-	return nil
 }
 
 func (s *Server) Stop() error {
@@ -83,20 +95,16 @@ func (s *Server) Stop() error {
 	return nil
 }
 
-func New(source host.Source, cfg config.Config) (*Server, error) {
-	var usr *user.User
+func (s *Server) Configure(cfg config.Config) error {
 	if cfg.User.User != "" {
-		u, err := user.FromString(cfg.User.User)
+		usr, err := user.FromString(cfg.User.User)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		usr = u
+		s.user = usr
 	}
-	return &Server{
-		source:  source,
-		user:    usr,
-		client:  supervisor.NewClientMux(source, host.Any()),
-		pattern: cfg.Server.Pattern,
-		stop:    make(chan bool, 1),
-	}, nil
+	s.port = cfg.HTTPServer.Port
+	s.status = Status{}
+	s.stop = make(chan bool, 1)
+	return nil
 }

@@ -3,7 +3,6 @@ package store
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/any"
 	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/log"
 	"github.com/mesanine/gaffer/service"
@@ -67,7 +66,7 @@ func (s *FSStore) services(path string) ([]*service.Service, error) {
 			}
 		}
 		log.Log.Debug("loaded service bundle", zap.Any("spec", spec))
-		svc.Spec = &any.Any{Value: raw}
+		svc.Spec = raw
 		svcs = append(svcs, svc)
 	}
 	return svcs, nil

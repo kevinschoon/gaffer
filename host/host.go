@@ -2,6 +2,8 @@ package host
 
 import (
 	"fmt"
+	"net"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -39,6 +41,46 @@ func ByPort(p int) Filter {
 	return func(h *Host) bool {
 		return h.Port == int32(p)
 	}
+}
+
+func Self() (*Host, error) {
+	host := &Host{}
+	name, err := os.Hostname()
+	if err != nil {
+		return nil, err
+	}
+	host.Name = name
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil, err
+	}
+	for _, iface := range ifaces {
+		addrs, err := iface.Addrs()
+		if err != nil {
+			return nil, err
+		}
+		// TODO: Make more robust
+		for _, addr := range addrs {
+			ip, ok := addr.(*net.IPAddr)
+			if ok {
+				if !ip.IP.IsLoopback() {
+					if i := ip.IP.To4(); i != nil {
+						host.Address = i.String()
+						return host, nil
+					}
+				}
+			}
+		}
+	}
+	return nil, fmt.Errorf("cannot detect ip address")
+}
+
+func SelfMust() *Host {
+	host, err := Self()
+	if err != nil {
+		panic(fmt.Errorf("couldn't detect host from self %s", err.Error()))
+	}
+	return host
 }
 
 func New(pattern string) (*Host, error) {

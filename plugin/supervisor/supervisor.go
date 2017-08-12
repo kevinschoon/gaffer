@@ -13,7 +13,10 @@ import (
 	"time"
 )
 
-const BackoffInterval = 1000 * time.Millisecond
+const (
+	BackoffInterval = 1000 * time.Millisecond
+	StatsInterval   = 2000 * time.Millisecond
+)
 
 type Supervisor struct {
 	runcs  map[string]*runc.Runc
@@ -23,42 +26,52 @@ type Supervisor struct {
 	stop   chan bool
 }
 
-func New(cfg config.Config) (*Supervisor, error) {
+func (s *Supervisor) Name() string { return "gaffer.supervisor" }
+
+func (s *Supervisor) Configure(cfg config.Config) error {
 	services, err := store.NewFSStore(cfg).Services()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	runcs := map[string]*runc.Runc{}
+	s.runcs = map[string]*runc.Runc{}
 	for _, svc := range services {
 		ro, err := svc.ReadOnly()
 		if err != nil {
-			return nil, err
+			return err
 		}
-		runcs[svc.Id] = runc.New(svc.Id, svc.Bundle, ro, cfg)
+		s.runcs[svc.Id] = runc.New(svc.Id, svc.Bundle, ro, cfg)
 	}
-	return &Supervisor{
-		runcs:  runcs,
-		cancel: map[string]context.CancelFunc{},
-		err:    make(chan error),
-		stop:   make(chan bool),
-		config: cfg,
-	}, nil
+	s.cancel = map[string]context.CancelFunc{}
+	s.err = make(chan error, 1)
+	s.config = cfg
+	return nil
 }
-
-func (s *Supervisor) Name() string { return "gaffer.supervisor" }
 
 func (s *Supervisor) Run(eb *event.EventBus) error {
 	// Launch all registered containers
 	s.init(eb)
+	ticker := time.NewTicker(StatsInterval)
 	for {
-		log.Log.Info("supervisor waiting for new events")
 		select {
 		case <-s.stop:
-			log.Log.Warn("supervisor is shutdown")
+			<-s.stop
+			log.Log.Warn("supervisor has shutdown")
 			return nil
+		case <-ticker.C:
+			for name, rc := range s.runcs {
+				stats, err := rc.Stats()
+				if err != nil {
+					log.Log.Warn(fmt.Sprintf("failed to collect stats from %s: %s", name, err.Error()))
+					continue
+				}
+				eb.Push(event.New(
+					event.SERVICE_METRICS,
+					event.WithID(name),
+					event.WithStats(*stats),
+				))
+			}
 		}
 	}
-	return nil
 }
 
 func (s *Supervisor) Stop() error {
