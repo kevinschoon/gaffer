@@ -2,6 +2,7 @@ package register
 
 import (
 	"fmt"
+	"github.com/cenkalti/backoff"
 	"github.com/mesanine/gaffer/client"
 	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/event"
@@ -13,30 +14,51 @@ const RegistrationInterval = 25 * time.Second
 
 type Server struct {
 	stop   chan bool
-	client *client.Client
+	config config.Config
 }
 
 func (s Server) Name() string { return "gaffer.register" }
 
 func (s *Server) Configure(cfg config.Config) error {
-	cli, err := client.New(cfg)
-	if err != nil {
-		return err
-	}
+	s.config = cfg
 	s.stop = make(chan bool, 1)
-	s.client = cli
 	return nil
 }
 
 func (s *Server) Run(eb *event.EventBus) error {
-	ticker := time.NewTicker(RegistrationInterval)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- backoff.RetryNotify(func() error {
+			var cli *client.Client
+			defer func() {
+				if cli != nil {
+					cli.Close()
+				}
+			}()
+			for {
+				if cli == nil {
+					c, err := client.New(s.config)
+					if err != nil {
+						return err
+					}
+					cli = c
+				}
+				err := cli.Register()
+				if err != nil {
+					return err
+				}
+				time.Sleep(RegistrationInterval)
+			}
+		}, backoff.NewExponentialBackOff(),
+			func(err error, d time.Duration) {
+				log.Log.Warn(fmt.Sprintf("failed to register with etcd: %s", err.Error()))
+			},
+		)
+	}()
 	for {
 		select {
-		case <-ticker.C:
-			err := s.client.Register()
-			if err != nil {
-				log.Log.Error(fmt.Sprintf("failed to register self: %s", err.Error()))
-			}
+		case err := <-errCh:
+			return err
 		case <-s.stop:
 			return nil
 		}
@@ -45,5 +67,5 @@ func (s *Server) Run(eb *event.EventBus) error {
 
 func (s *Server) Stop() error {
 	s.stop <- true
-	return s.client.Close()
+	return nil
 }
