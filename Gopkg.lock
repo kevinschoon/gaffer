@@ -26,16 +26,22 @@
   revision = "2774a2ea124a5c2d0aba13b5c2dd8a5a9a48775d"
 
 [[projects]]
+  name = "github.com/coreos/etcd"
+  packages = ["auth/authpb","clientv3","etcdserver/api/v3rpc/rpctypes","etcdserver/etcdserverpb","mvcc/mvccpb"]
+  revision = "d0d1a87aa96ae14914751d42264262cb69eda170"
+  version = "v3.2.5"
+
+[[projects]]
+  name = "github.com/davecgh/go-spew"
+  packages = ["spew"]
+  revision = "346938d642f2ec3594ed81d874461961cd0faa76"
+  version = "v1.1.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
   packages = ["proto","protoc-gen-go/descriptor","ptypes/any"]
   revision = "6a1fa9404c0aebf36c879bc50152edcc953910d2"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/gosuri/uitable"
-  packages = [".","util/strutil","util/wordwrap"]
-  revision = "36ee7e946282a3fb1cfecd476ddc9b35d8847e42"
 
 [[projects]]
   branch = "master"
@@ -48,12 +54,6 @@
   name = "github.com/julienschmidt/httprouter"
   packages = ["."]
   revision = "6f3f3919c8781ce5c0509c83fffc887a7830c938"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/mattn/go-runewidth"
-  packages = ["."]
-  revision = "14207d285c6c197daabb5c9793d63e7af9ab2d50"
 
 [[projects]]
   name = "github.com/natefinch/lumberjack"
@@ -74,10 +74,22 @@
   revision = "ff09b135c25aae272398c51a07235b90a75aa4f0"
 
 [[projects]]
+  name = "github.com/pmezard/go-difflib"
+  packages = ["difflib"]
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   revision = "202f25545ea4cf9b191ff7f846df5d87c9382c2b"
   version = "v1.0.0"
+
+[[projects]]
+  name = "github.com/stretchr/testify"
+  packages = ["assert"]
+  revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
+  version = "v1.1.4"
 
 [[projects]]
   branch = "master"
@@ -124,6 +136,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7fc51cdc50d78615beece944afabaf3cde073c461f4cc80e25c33fd733a4bc34"
+  inputs-digest = "d824839f15499ae9e0eea8e02e55996a234b210d32c7be799f4823f113392384"
   solver-name = "gps-cdcl"
   solver-version = 1

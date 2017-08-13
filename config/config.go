@@ -1,11 +1,12 @@
 package config
 
 type Config struct {
-	Store      Store
-	Runc       Runc
-	RPCServer  RPCServer
-	HTTPServer HTTPServer
-	User       User
+	Store              Store
+	Runc               Runc
+	RegistrationServer RegistrationServer
+	RPCServer          RPCServer
+	HTTPServer         HTTPServer
+	User               User
 }
 
 type Store struct {
@@ -18,6 +19,10 @@ type Runc struct {
 	// Toggle if we should handle overlay
 	// mounts ourself.
 	Mount bool
+}
+
+type RegistrationServer struct {
+	EtcdEndpoints []string
 }
 
 type RPCServer struct {

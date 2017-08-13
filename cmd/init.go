@@ -5,9 +5,11 @@ import (
 	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/plugin"
 	http "github.com/mesanine/gaffer/plugin/http-server"
+	regSrv "github.com/mesanine/gaffer/plugin/registration"
 	rpc "github.com/mesanine/gaffer/plugin/rpc-server"
 	"github.com/mesanine/gaffer/plugin/supervisor"
 	"os"
+	"strings"
 )
 
 func initCMD() func(*cli.Cmd) {
@@ -18,6 +20,7 @@ func initCMD() func(*cli.Cmd) {
 			once       = cmd.BoolOpt("once", false, "run the services only once, synchronously")
 			httpPort   = cmd.IntOpt("http-port", 9090, "http server port")
 			rpcPort    = cmd.IntOpt("rpc-port", 10000, "rpc server port")
+			etcdSrvs   = cmd.StringOpt("etcd", "http://localhost:2379", "list of etcd endpoints seperated by ,")
 			mount      = cmd.BoolOpt("mount", false, "handle overlay mounts")
 			configPath = cmd.StringOpt("config-path", "/var/mesanine", "service configuration path")
 		)
@@ -31,6 +34,9 @@ func initCMD() func(*cli.Cmd) {
 				Runc: config.Runc{
 					Root:  *root,
 					Mount: *mount,
+				},
+				RegistrationServer: config.RegistrationServer{
+					EtcdEndpoints: strings.Split(*etcdSrvs, ","),
 				},
 				RPCServer: config.RPCServer{
 					Port: *rpcPort,
@@ -46,6 +52,7 @@ func initCMD() func(*cli.Cmd) {
 			reg := plugin.Registry{}
 			maybe(reg.Register(&rpc.Server{}))
 			maybe(reg.Register(&http.Server{}))
+			maybe(reg.Register(&regSrv.Server{}))
 			maybe(reg.Register(&supervisor.Supervisor{}))
 			maybe(reg.Configure(cfg))
 			maybe(reg.Run())

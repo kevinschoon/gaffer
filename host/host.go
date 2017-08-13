@@ -5,7 +5,6 @@ import (
 	"net"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -37,9 +36,15 @@ func ByName(pattern string) Filter {
 	}
 }
 
-func ByPort(p int) Filter {
+func ByIP(ip string) Filter {
 	return func(h *Host) bool {
-		return h.Port == int32(p)
+		return h.Address == ip
+	}
+}
+
+func ByMAC(mac string) Filter {
+	return func(h *Host) bool {
+		return h.Mac == mac
 	}
 }
 
@@ -54,17 +59,29 @@ func Self() (*Host, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, iface := range ifaces {
-		addrs, err := iface.Addrs()
-		if err != nil {
-			return nil, err
-		}
-		// TODO: Make more robust
-		for _, addr := range addrs {
-			ip, ok := addr.(*net.IPAddr)
-			if ok {
-				if !ip.IP.IsLoopback() {
+	// Must have at least two interfaces
+	// assuming the first host interface
+	// is a loopback.
+	if len(ifaces) > 1 {
+		// Range all interfaces except loopback
+		for _, iface := range ifaces[1:] {
+			// Ignore any interfaces which are not "up"
+			if !strings.Contains(iface.Flags.String(), "up") {
+				continue
+			}
+			// List all addresses on the interface
+			addrs, err := iface.Addrs()
+			if err != nil {
+				return nil, err
+			}
+			for _, addr := range addrs {
+				ip, ok := addr.(*net.IPNet)
+				if ok {
+					// Assume the first interface with an IPv4
+					// is the what we are bound to. TODO: This
+					// should be configurable.
 					if i := ip.IP.To4(); i != nil {
+						host.Mac = iface.HardwareAddr.String()
 						host.Address = i.String()
 						return host, nil
 					}
@@ -78,19 +95,7 @@ func Self() (*Host, error) {
 func SelfMust() *Host {
 	host, err := Self()
 	if err != nil {
-		panic(fmt.Errorf("couldn't detect host from self %s", err.Error()))
+		panic(fmt.Errorf("couldn't detect host from self: %s", err.Error()))
 	}
 	return host
-}
-
-func New(pattern string) (*Host, error) {
-	if !strings.Contains(pattern, "gaffer://") {
-		return nil, fmt.Errorf("bad host pattern: %s", pattern)
-	}
-	split := strings.SplitN(strings.Replace(pattern, "gaffer://", "", -1), ":", 2)
-	port, err := strconv.Atoi(split[1])
-	if err != nil {
-		return nil, err
-	}
-	return &Host{Name: split[0], Port: int32(port)}, nil
 }

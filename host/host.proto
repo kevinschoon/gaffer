@@ -8,5 +8,6 @@ message Host {
   string name = 1;
   // Server IP address
   string address = 2;
-  int32 port = 3;
+  // MAC Address
+  string mac = 3;
 }

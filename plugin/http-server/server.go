@@ -5,7 +5,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/event"
-	"github.com/mesanine/gaffer/host"
 	"github.com/mesanine/gaffer/log"
 	"github.com/mesanine/gaffer/user"
 	"go.uber.org/zap"
@@ -19,7 +18,6 @@ type Status struct {
 }
 
 type Server struct {
-	source host.Source
 	user   *user.User
 	port   int
 	stop   chan bool

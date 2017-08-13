@@ -50,6 +50,7 @@ func (s *Supervisor) Configure(cfg config.Config) error {
 func (s *Supervisor) Run(eb *event.EventBus) error {
 	// Launch all registered containers
 	s.init(eb)
+	// TODO KILL THE TICKER!
 	ticker := time.NewTicker(StatsInterval)
 	for {
 		select {
