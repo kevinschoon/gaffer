@@ -8,6 +8,7 @@ import (
 	"github.com/mesanine/gaffer/event"
 	"github.com/mesanine/gaffer/log"
 	"github.com/mesanine/gaffer/runc"
+	"github.com/mesanine/gaffer/service"
 	"github.com/mesanine/gaffer/store"
 	"go.uber.org/zap"
 	"time"
@@ -35,11 +36,7 @@ func (s *Supervisor) Configure(cfg config.Config) error {
 	}
 	s.runcs = map[string]*runc.Runc{}
 	for _, svc := range services {
-		ro, err := svc.ReadOnly()
-		if err != nil {
-			return err
-		}
-		s.runcs[svc.Id] = runc.New(svc.Id, svc.Bundle, ro, cfg)
+		s.runcs[svc.Id] = runc.New(svc.Id, svc.Bundle, service.ReadOnly(svc), cfg)
 	}
 	s.cancel = map[string]context.CancelFunc{}
 	s.err = make(chan error, 1)
@@ -61,7 +58,7 @@ func (s *Supervisor) Run(eb *event.EventBus) error {
 			return nil
 		case evt := <-evtCh:
 			switch {
-			case evt.Is(event.REQUEST_METRICS):
+			case event.Is(event.REQUEST_METRICS)(evt):
 				for name, rc := range s.runcs {
 					stats, err := rc.Stats()
 					if err != nil {
@@ -96,6 +93,14 @@ func (s *Supervisor) Stop() error {
 	// Signial stop to the Run() function
 	s.stop <- true
 	return nil
+}
+
+// Runc returns the underlying runc instance with id
+func (s *Supervisor) Runc(id string) (*runc.Runc, error) {
+	if rc, ok := s.runcs[id]; ok {
+		return rc, nil
+	}
+	return nil, fmt.Errorf("no service with id %s exists", id)
 }
 
 func (s *Supervisor) init(eb *event.EventBus) {

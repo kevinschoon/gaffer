@@ -50,10 +50,10 @@ func initCMD() func(*cli.Cmd) {
 				os.Exit(0)
 			}
 			reg := plugin.Registry{}
-			maybe(reg.Register(&rpc.Server{}))
 			maybe(reg.Register(&http.Server{}))
 			maybe(reg.Register(&regSrv.Server{}))
 			maybe(reg.Register(&supervisor.Supervisor{}))
+			maybe(reg.Register(&rpc.Server{}))
 			maybe(reg.Configure(cfg))
 			maybe(reg.Run())
 		}

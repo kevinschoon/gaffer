@@ -5,6 +5,8 @@ import (
 	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/event"
 	"github.com/mesanine/gaffer/log"
+	rpc "github.com/mesanine/gaffer/plugin/rpc-server"
+	"github.com/mesanine/gaffer/plugin/supervisor"
 	"os"
 	"os/signal"
 )
@@ -28,6 +30,13 @@ func (r Registry) Register(p Plugin) error {
 	return nil
 }
 
+// Registered checks to see if a plugin
+// has been registered.
+func (r Registry) Registered(id string) bool {
+	_, ok := r[id]
+	return ok
+}
+
 // Configure configures all of the underlying plugins.
 func (registry Registry) Configure(cfg config.Config) error {
 	for name, plugin := range registry {
@@ -36,6 +45,14 @@ func (registry Registry) Configure(cfg config.Config) error {
 			return err
 		}
 	}
+	// If the RPC server and Supervisor are running
+	// let the server call runc commands directly.
+	if registry.Registered("gaffer.rpc-server") && registry.Registered("gaffer.supervisor") {
+		registry["gaffer.rpc-server"].(*rpc.Server).SetRuncFn(
+			registry["gaffer.supervisor"].(*supervisor.Supervisor).Runc,
+		)
+	}
+
 	return nil
 }
 
@@ -60,13 +77,12 @@ func (registry Registry) Run() error {
 		for {
 			if evt := sub.Next(); evt != nil {
 				switch {
-				case evt.Is(event.REQUEST_SHUTDOWN):
+				case event.Is(event.REQUEST_SHUTDOWN)(*evt):
 					for name, plugin := range registry {
-						shutdownCh <- shutdown{
-							Name: name,
-							Err:  plugin.Stop(),
+						log.Log.Warn(fmt.Sprintf("shutting down plugin: %s", name))
+						if err := plugin.Stop(); err != nil {
+							log.Log.Error(fmt.Sprintf("encountered error shutting down plugin %s: %s", name, err.Error()))
 						}
-						log.Log.Warn(fmt.Sprintf("shut down plugin: %s", name))
 					}
 					return
 				}

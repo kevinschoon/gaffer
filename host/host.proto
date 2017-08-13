@@ -10,4 +10,6 @@ message Host {
   string address = 2;
   // MAC Address
   string mac = 3;
+  // RPC port
+  int32 port = 4;
 }

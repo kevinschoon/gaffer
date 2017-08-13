@@ -51,5 +51,8 @@ func Run() {
 		fatal.FailHard = *failHard
 	}
 	app.Command("init", "launch the Gaffer init process", initCMD())
+	app.Command("hosts", "list remote Gaffer hosts", hostsCMD())
+	app.Command("status", "list the status of a remote host", statusCMD())
+	app.Command("restart", "restart a remote service", restartCMD())
 	maybe(app.Run(os.Args))
 }

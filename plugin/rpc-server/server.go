@@ -2,24 +2,29 @@ package server
 
 import (
 	"fmt"
-	"github.com/golang/protobuf/ptypes/any"
 	"github.com/mesanine/gaffer/event"
+	"github.com/mesanine/gaffer/runc"
 	"github.com/mesanine/gaffer/service"
+	"github.com/mesanine/gaffer/store"
 	"golang.org/x/net/context"
 	"net"
 
 	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/log"
-	"github.com/mesanine/gaffer/store"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
+
+// RuncFn is a function to lookup a runc.Runc
+// presumably running on this host.
+type RuncFn func(string) (*runc.Runc, error)
 
 type Server struct {
 	db   *store.FSStore
 	eb   *event.EventBus
 	port int
 	stop chan bool
+	runc RuncFn
 }
 
 func (s *Server) Name() string { return "gaffer.rpc-server" }
@@ -60,14 +65,45 @@ func (s *Server) Stop() error {
 	return nil
 }
 
+// SetRuncFn sets the function to get a
+// runc.Runc instance.
+func (s *Server) SetRuncFn(fn RuncFn) {
+	s.runc = fn
+}
+
 func (s *Server) Status(ctx context.Context, req *StatusRequest) (*StatusResponse, error) {
 	resp := &StatusResponse{
-		Services: map[string]*service.Service{},
-		Stats:    map[string]*any.Any{},
+		Services: []*service.Service{},
+	}
+	services, err := s.db.Services()
+	if err != nil {
+		return nil, err
+	}
+	for _, svc := range services {
+		rc, err := s.runc(svc.Id)
+		if err != nil {
+			return nil, err
+		}
+		stats, err := rc.Stats()
+		if err != nil {
+			return nil, err
+		}
+		svc = service.WithStats(*stats)(svc)
+		resp.Services = append(resp.Services, &svc)
 	}
 	return resp, nil
 }
 
 func (s *Server) Restart(ctx context.Context, req *RestartRequest) (*RestartResponse, error) {
+	rc, err := s.runc(req.Id)
+	if err != nil {
+		return nil, err
+	}
+	// Kill the underlying runc app
+	// causing the supervisor to start it again.
+	err = rc.Stop()
+	if err != nil {
+		return nil, err
+	}
 	return &RestartResponse{}, nil
 }
