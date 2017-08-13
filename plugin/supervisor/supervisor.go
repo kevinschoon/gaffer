@@ -50,26 +50,31 @@ func (s *Supervisor) Configure(cfg config.Config) error {
 func (s *Supervisor) Run(eb *event.EventBus) error {
 	// Launch all registered containers
 	s.init(eb)
-	// TODO KILL THE TICKER!
-	ticker := time.NewTicker(StatsInterval)
+	sub := event.NewSubscriber()
+	eb.Subscribe(sub)
+	defer eb.Unsubscribe(sub)
+	evtCh := sub.Chan()
 	for {
 		select {
 		case <-s.stop:
 			<-s.stop
 			log.Log.Warn("supervisor has shutdown")
 			return nil
-		case <-ticker.C:
-			for name, rc := range s.runcs {
-				stats, err := rc.Stats()
-				if err != nil {
-					log.Log.Warn(fmt.Sprintf("failed to collect stats from %s: %s", name, err.Error()))
-					continue
+		case evt := <-evtCh:
+			switch {
+			case evt.Is(event.REQUEST_METRICS):
+				for name, rc := range s.runcs {
+					stats, err := rc.Stats()
+					if err != nil {
+						log.Log.Warn(fmt.Sprintf("failed to collect stats from %s: %s", name, err.Error()))
+						continue
+					}
+					eb.Push(event.New(
+						event.SERVICE_METRICS,
+						event.WithID(name),
+						event.WithStats(*stats),
+					))
 				}
-				eb.Push(event.New(
-					event.SERVICE_METRICS,
-					event.WithID(name),
-					event.WithStats(*stats),
-				))
 			}
 		}
 	}

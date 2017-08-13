@@ -17,6 +17,8 @@ const (
 	SERVICE_STARTED = EventType("SERVICE_STARTED")
 	// Service has exited
 	SERVICE_EXITED = EventType("SERVICE_EXITED")
+	// Request service metrics
+	REQUEST_METRICS = EventType("REQUEST_METRICS")
 	// Broadcasted runtime metrics
 	SERVICE_METRICS = EventType("SERVICE_METRICS")
 )
