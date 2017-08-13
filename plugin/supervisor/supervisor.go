@@ -58,7 +58,6 @@ func (s *Supervisor) Run(eb *event.EventBus) error {
 		select {
 		case <-s.stop:
 			<-s.stop
-			log.Log.Warn("supervisor has shutdown")
 			return nil
 		case evt := <-evtCh:
 			switch {

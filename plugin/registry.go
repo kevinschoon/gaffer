@@ -9,6 +9,11 @@ import (
 	"os/signal"
 )
 
+type shutdown struct {
+	Name string
+	Err  error
+}
+
 // Registry stores a collection of
 // plugins each with a unique name.
 type Registry map[string]Plugin
@@ -34,36 +39,42 @@ func (registry Registry) Configure(cfg config.Config) error {
 	return nil
 }
 
-// Run runs registry of plugins each
+// Run runs a registry of plugins each
 // in a separate Go routine. It waits until
 // all plugins have returned. If any plugin
 // returns an error the function returns
 // immediately.
-// TODO Catch signals
 func (registry Registry) Run() error {
 	eb := event.NewEventBus()
 	eb.Start()
 	defer eb.Stop()
-	errCh := make(chan error, len(registry))
+	shutdownCh := make(chan shutdown)
 	// Launch a routine that listens for a SHUTDOWN
 	// event and calls Stop() on each plugin. This
 	// avoids each plugin having to implement the
 	// same logic.
-	go func(errCh chan error, eb *event.EventBus) {
+	go func(shutdownCh chan shutdown, eb *event.EventBus) {
 		sub := event.NewSubscriber()
 		eb.Subscribe(sub)
-		evtCh := sub.Chan()
-		for evt := range evtCh {
-			if evt.Is(event.REQUEST_SHUTDOWN) {
-				for name, plugin := range registry {
-					log.Log.Warn(fmt.Sprintf("shutting down plugin %s", name))
-					errCh <- plugin.Stop()
+		defer eb.Unsubscribe(sub)
+		for {
+			if evt := sub.Next(); evt != nil {
+				switch {
+				case evt.Is(event.REQUEST_SHUTDOWN):
+					for name, plugin := range registry {
+						shutdownCh <- shutdown{
+							Name: name,
+							Err:  plugin.Stop(),
+						}
+						log.Log.Warn(fmt.Sprintf("shut down plugin: %s", name))
+					}
+					return
 				}
 			}
 		}
-	}(errCh, eb)
+	}(shutdownCh, eb)
 	sigCh := make(chan os.Signal, 1)
-	// TODO: Which other signals might we encounter?
+	// TODO: Which other signals might we encounter as init?
 	signal.Notify(sigCh, os.Interrupt, os.Kill)
 	go func(eb *event.EventBus) {
 		sig := <-sigCh
@@ -75,19 +86,24 @@ func (registry Registry) Run() error {
 	for name, plugin := range registry {
 		log.Log.Info(fmt.Sprintf("launching plugin %s", name))
 		go func(plugin Plugin) {
-			errCh <- plugin.Run(eb)
+			shutdownCh <- shutdown{
+				Name: name,
+				Err:  plugin.Run(eb),
+			}
 		}(plugin)
 	}
 	// Wait until we recieve the same number
 	// of errors or nil as there are registered
 	// plugins
 	for i := 0; i < len(registry); i++ {
-		if err := <-errCh; err != nil {
-			log.Log.Error(err.Error())
+		msg := <-shutdownCh
+		if msg.Err != nil {
+			log.Log.Error(fmt.Sprintf("plugin %s encountered an error: %s", msg.Name, msg.Err.Error()))
 			// Give up immediately when we encounter
 			// a plugin error
-			return err
+			return msg.Err
 		}
+		log.Log.Info(fmt.Sprintf("plugin %s has shutdown", msg.Name))
 	}
 	// All plugins successfully shutdown
 	log.Log.Info("all plugins have shutdown")
