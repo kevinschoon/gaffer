@@ -8,4 +8,5 @@ message Service {
   string id = 1;
   string bundle = 2;
   bytes spec = 3;
+  bytes stats = 4;
 }

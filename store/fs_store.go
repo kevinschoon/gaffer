@@ -24,12 +24,12 @@ type FSStore struct {
 	mu         sync.RWMutex
 }
 
-func (s *FSStore) services(path string) ([]*service.Service, error) {
+func (s *FSStore) services(path string) ([]service.Service, error) {
 	dirs, err := ioutil.ReadDir(path)
 	if err != nil {
 		return nil, err
 	}
-	svcs := []*service.Service{}
+	svcs := []service.Service{}
 	for _, dir := range dirs {
 		bundle := filepath.Join(path, dir.Name())
 		cfgPath := filepath.Join(bundle, "config.json")
@@ -38,7 +38,7 @@ func (s *FSStore) services(path string) ([]*service.Service, error) {
 		if err != nil {
 			return nil, err
 		}
-		svc := &service.Service{Id: dir.Name(), Bundle: bundle}
+		svc := service.Service{Id: dir.Name(), Bundle: bundle}
 		spec := &specs.Spec{}
 		err = json.Unmarshal(raw, spec)
 		if err != nil {
@@ -52,7 +52,6 @@ func (s *FSStore) services(path string) ([]*service.Service, error) {
 				log.Log.Debug(fmt.Sprintf("updating environment variable %s=%s", key, value))
 				spec.Process.Env = append(spec.Process.Env, fmt.Sprintf("%s=%s", key, value))
 			}
-			raw, _ = json.Marshal(spec)
 			log.Log.Debug(fmt.Sprintf("environment for service %s updated from local config", svc.Id))
 		} else {
 			log.Log.Debug(fmt.Sprintf("could not load environment from local config: %s", err.Error()))
@@ -66,13 +65,12 @@ func (s *FSStore) services(path string) ([]*service.Service, error) {
 			}
 		}
 		log.Log.Debug("loaded service bundle", zap.Any("spec", spec))
-		svc.Spec = raw
-		svcs = append(svcs, svc)
+		svcs = append(svcs, service.WithSpec(*spec)(svc))
 	}
 	return svcs, nil
 }
 
-func (s *FSStore) Services() ([]*service.Service, error) {
+func (s *FSStore) Services() ([]service.Service, error) {
 	return s.services(s.BasePath)
 }
 
