@@ -102,9 +102,10 @@ func (registry Registry) Run() error {
 	for name, plugin := range registry {
 		log.Log.Info(fmt.Sprintf("launching plugin %s", name))
 		go func(plugin Plugin) {
+			err := plugin.Run(eb)
 			shutdownCh <- shutdown{
-				Name: name,
-				Err:  plugin.Run(eb),
+				Name: plugin.Name(),
+				Err:  err,
 			}
 		}(plugin)
 	}
