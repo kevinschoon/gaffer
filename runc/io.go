@@ -31,7 +31,7 @@ func (i *IO) Start() {
 			case "stdout":
 				log.Log.Debug(i.id, zap.String("stdout", text))
 			case "stderr":
-				log.Log.Error(i.id, zap.String("stderr", text))
+				log.Log.Debug(i.id, zap.String("stderr", text))
 			}
 		}
 	}
