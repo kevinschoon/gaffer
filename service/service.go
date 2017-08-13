@@ -12,12 +12,18 @@ func ReadOnly(svc Service) bool {
 
 func Spec(svc Service) *specs.Spec {
 	spec := &specs.Spec{}
-	json.Unmarshal(svc.Spec, spec)
+	err := json.Unmarshal(svc.Spec, spec)
+	if err != nil {
+		panic(err)
+	}
 	return spec
 }
 
 func Stats(svc Service) *runc.Stats {
 	stats := &runc.Stats{}
-	json.Unmarshal(svc.Stats, stats)
+	err := json.Unmarshal(svc.Stats, stats)
+	if err != nil {
+		panic(err)
+	}
 	return stats
 }
