@@ -23,6 +23,7 @@ func (s *Server) Configure(cfg config.Config) error {
 	if err != nil {
 		return err
 	}
+	s.stop = make(chan bool, 1)
 	s.client = cli
 	return nil
 }

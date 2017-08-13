@@ -40,6 +40,7 @@ func (s *Supervisor) Configure(cfg config.Config) error {
 	}
 	s.cancel = map[string]context.CancelFunc{}
 	s.err = make(chan error, 1)
+	s.stop = make(chan bool, 1)
 	s.config = cfg
 	return nil
 }
@@ -54,7 +55,6 @@ func (s *Supervisor) Run(eb *event.EventBus) error {
 	for {
 		select {
 		case <-s.stop:
-			<-s.stop
 			return nil
 		case evt := <-evtCh:
 			switch {
