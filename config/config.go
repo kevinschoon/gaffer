@@ -1,12 +1,12 @@
 package config
 
 type Config struct {
-	Store              Store
-	Runc               Runc
-	RegistrationServer RegistrationServer
-	RPCServer          RPCServer
-	HTTPServer         HTTPServer
-	User               User
+	Store      Store
+	Runc       Runc
+	Etcd       Etcd
+	RPCServer  RPCServer
+	HTTPServer HTTPServer
+	User       User
 }
 
 type Store struct {
@@ -21,8 +21,8 @@ type Runc struct {
 	Mount bool
 }
 
-type RegistrationServer struct {
-	EtcdEndpoints []string
+type Etcd struct {
+	Endpoints []string
 }
 
 type RPCServer struct {

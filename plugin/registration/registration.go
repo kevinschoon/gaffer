@@ -1,64 +1,40 @@
 package register
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
-	etcd "github.com/coreos/etcd/clientv3"
+	"github.com/mesanine/gaffer/client"
 	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/event"
-	"github.com/mesanine/gaffer/host"
 	"github.com/mesanine/gaffer/log"
 	"time"
 )
 
-const (
-	RegistrationKey      = "/hosts/%s"
-	DailTimeout          = 5000 * time.Millisecond
-	RegistrationInterval = 5000 * time.Millisecond
-	RegistrationLeaseTTL = 25
-)
+const RegistrationInterval = 25 * time.Second
 
 type Server struct {
-	stop chan bool
-	etcd *etcd.Client
+	stop   chan bool
+	client *client.Client
 }
 
 func (s Server) Name() string { return "gaffer.register" }
 
 func (s *Server) Configure(cfg config.Config) error {
-	client, err := etcd.New(etcd.Config{
-		Endpoints:   cfg.RegistrationServer.EtcdEndpoints,
-		DialTimeout: DailTimeout,
-	})
+	cli, err := client.New(cfg)
 	if err != nil {
 		return err
 	}
-	s.etcd = client
+	s.client = cli
 	return nil
 }
 
 func (s *Server) Run(eb *event.EventBus) error {
 	ticker := time.NewTicker(RegistrationInterval)
-	self, err := host.Self()
-	if err != nil {
-		return err
-	}
-	rawSelf, err := json.Marshal(self)
-	if err != nil {
-		return err
-	}
 	for {
 		select {
 		case <-ticker.C:
-			lease, err := s.etcd.Grant(context.TODO(), RegistrationLeaseTTL)
+			err := s.client.Register()
 			if err != nil {
-				log.Log.Warn(fmt.Sprintf("failed to aquire registration lease: %s", err.Error()))
-				continue
-			}
-			_, err = s.etcd.Put(context.TODO(), fmt.Sprintf(RegistrationKey, self.Mac), string(rawSelf), etcd.WithLease(lease.ID))
-			if err != nil {
-				log.Log.Warn(fmt.Sprintf("failed to register: %s", err.Error()))
+				log.Log.Error(fmt.Sprintf("failed to register self: %s", err.Error()))
 			}
 		case <-s.stop:
 			return nil
@@ -68,5 +44,5 @@ func (s *Server) Run(eb *event.EventBus) error {
 
 func (s *Server) Stop() error {
 	s.stop <- true
-	return s.etcd.Close()
+	return s.client.Close()
 }
