@@ -35,8 +35,8 @@ func initCMD() func(*cli.Cmd) {
 					Root:  *root,
 					Mount: *mount,
 				},
-				RegistrationServer: config.RegistrationServer{
-					EtcdEndpoints: strings.Split(*etcdSrvs, ","),
+				Etcd: config.Etcd{
+					Endpoints: strings.Split(*etcdSrvs, ","),
 				},
 				RPCServer: config.RPCServer{
 					Port: *rpcPort,
