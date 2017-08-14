@@ -57,6 +57,10 @@ func (s *FSStore) services(path string) ([]service.Service, error) {
 			log.Log.Debug(fmt.Sprintf("could not load environment from local config: %s", err.Error()))
 		}
 		if modified {
+			raw, err := json.Marshal(spec)
+			if err != nil {
+				return nil, err
+			}
 			// Write out updated configuration
 			log.Log.Debug(fmt.Sprintf("re-writing updated bundle config %s", cfgPath))
 			err = ioutil.WriteFile(cfgPath, raw, 0644)
