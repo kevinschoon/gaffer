@@ -9,3 +9,4 @@ jobs:
       - setup_remote_docker:
           version: 17.05.0-ce
       - run: make docker
+      - run: make deploy

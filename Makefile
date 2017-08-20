@@ -39,4 +39,6 @@ build:
 docker: 
 	docker build -t $(DOCKER_IMAGE) .
 
-
+deploy:
+	docker login -u $$DOCKER_LOGIN -p $$DOCKER_PASSWORD
+	docker push $(DOCKER_IMAGE)
