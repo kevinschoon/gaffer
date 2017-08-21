@@ -49,7 +49,7 @@ func (s *Server) Run(eb *event.EventBus) error {
 				}
 				time.Sleep(RegistrationInterval)
 			}
-		}, backoff.NewExponentialBackOff(),
+		}, backoff.NewConstantBackOff(1*time.Second),
 			func(err error, d time.Duration) {
 				log.Log.Warn(fmt.Sprintf("failed to register with etcd: %s", err.Error()))
 			},
