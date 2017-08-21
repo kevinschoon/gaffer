@@ -18,7 +18,7 @@ test:
 	go vet $(PACKAGES)
 
 bindata:
-	go-bindata -pkg server -o server/bindata.go www/...
+	go-bindata -pkg server -o plugin/http-server/bindata.go www/...
 
 dep:
 	dep ensure
