@@ -4,13 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/mesanine/gaffer/config"
+	"github.com/mesanine/gaffer/ginit"
 	"github.com/mesanine/gaffer/log"
 	"github.com/mesanine/gaffer/service"
-	"github.com/opencontainers/runtime-spec/specs-go"
-	"go.uber.org/zap"
 	"io/ioutil"
+	"os"
 	"path/filepath"
-	"sync"
 )
 
 // FSStore reads runc Service
@@ -19,77 +18,140 @@ import (
 // with LinuxKit's /containers/{service,onboot}
 // paths.
 type FSStore struct {
-	BasePath   string
-	ConfigPath string
-	mu         sync.RWMutex
+	BasePath string
+	Mount    bool
+	MoveRoot bool
+	config   config.Config
 }
 
-func (s *FSStore) services(path string) ([]service.Service, error) {
-	dirs, err := ioutil.ReadDir(path)
+func (s FSStore) Services() ([]service.Service, error) {
+	dirs, err := ioutil.ReadDir(s.BasePath)
 	if err != nil {
 		return nil, err
 	}
 	svcs := []service.Service{}
 	for _, dir := range dirs {
-		bundle := filepath.Join(path, dir.Name())
-		cfgPath := filepath.Join(bundle, "config.json")
+		bundle := filepath.Join(s.BasePath, dir.Name())
 		log.Log.Debug(fmt.Sprintf("loading service from dir %s", bundle))
-		raw, err := ioutil.ReadFile(cfgPath)
+		// Load the runc spec
+		raw, err := ioutil.ReadFile(filepath.Join(bundle, "config.json"))
 		if err != nil {
 			return nil, err
 		}
-		svc := service.Service{Id: dir.Name(), Bundle: bundle}
-		spec := &specs.Spec{}
-		err = json.Unmarshal(raw, spec)
-		if err != nil {
-			return nil, err
-		}
-		var modified bool
-		envs, err := loadEnvs(filepath.Join(s.ConfigPath, svc.Id, "envs.json"))
-		if err == nil {
-			modified = true
-			for key, value := range envs {
-				log.Log.Debug(fmt.Sprintf("updating environment variable %s=%s", key, value))
-				spec.Process.Env = append(spec.Process.Env, fmt.Sprintf("%s=%s", key, value))
-			}
-			log.Log.Debug(fmt.Sprintf("environment for service %s updated from local config", svc.Id))
-		} else {
-			log.Log.Debug(fmt.Sprintf("could not load environment from local config: %s", err.Error()))
-		}
-		if modified {
-			raw, err := json.Marshal(spec)
-			if err != nil {
-				return nil, err
-			}
-			// Write out updated configuration
-			log.Log.Debug(fmt.Sprintf("re-writing updated bundle config %s", cfgPath))
-			err = ioutil.WriteFile(cfgPath, raw, 0644)
-			if err != nil {
-				return nil, err
-			}
-		}
-		log.Log.Debug("loaded service bundle", zap.Any("spec", spec))
-		svcs = append(svcs, service.WithSpec(*spec)(svc))
+		svcs = append(svcs, service.Service{Id: dir.Name(), Bundle: bundle, Spec: raw})
 	}
 	return svcs, nil
 }
 
-func (s *FSStore) Services() ([]service.Service, error) {
-	return s.services(s.BasePath)
-}
-
-func NewFSStore(cfg config.Config) *FSStore {
-	return &FSStore{
-		BasePath:   cfg.Store.BasePath,
-		ConfigPath: cfg.Store.ConfigPath,
+// Clean up rootfs mounts if they
+// are being handled by us.
+func (s FSStore) Close() error {
+	if s.Mount {
+		services, err := s.Services()
+		if err != nil {
+			return err
+		}
+		for _, svc := range services {
+			log.Log.Info(fmt.Sprintf("unmounting rootfs @ %s", svc.Bundle))
+			err := ginit.Unmount(filepath.Join(svc.Bundle, "rootfs")).Call()
+			if err != nil {
+				return err
+			}
+		}
 	}
+	return nil
 }
 
-func loadEnvs(path string) (map[string]string, error) {
-	raw, err := ioutil.ReadFile(path)
+// Init makes several modifications to the
+// container store path.
+// BUG: This function does not clean up mount
+// paths in all cases.
+func (s FSStore) Init() error {
+	services, err := s.Services()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	envs := map[string]string{}
-	return envs, json.Unmarshal(raw, &envs)
+	for _, svc := range services {
+		if s.MoveRoot {
+			// Moby now creates a lower/upper directory
+			// with the assumption that Linuxkit will
+			// mount it in a particular way. Gaffer will
+			// have to support both configurations for
+			// as it needs to run without privileges
+			// for testing and development.
+			old := filepath.Join(svc.Bundle, "rootfs")
+			// Path should be empty but rename to be safe
+			err := os.Rename(old, fmt.Sprintf("%s__old", old))
+			if err != nil {
+				return err
+			}
+			// move /containers/<base>/<id>/lower --> /containers/<base>/<id>/rootfs
+			err = os.Rename(filepath.Join(svc.Bundle, "lower"), old)
+			if err != nil {
+				return err
+			}
+		}
+		// If we were given environment variables
+		// to configure the service with we modify
+		// it's config.json file.
+		updates, err := s.config.Store.Envs()
+		if err != nil {
+			return err
+		}
+		if envs, ok := updates[svc.Id]; ok {
+			updated := service.Spec(svc)
+			// Append any existing environment variables
+			// in the config.json file
+			for key, value := range envs {
+				updated.Process.Env = append(updated.Process.Env, fmt.Sprintf("%s=%s", key, value))
+			}
+			raw, err := json.Marshal(updated)
+			if err != nil {
+				return err
+			}
+			err = ioutil.WriteFile(filepath.Join(svc.Bundle, "config.json"), raw, 0644)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	if s.Mount {
+		// Range through the services again
+		// mounting their rootfs path as RW
+		// or RO depending on it's configuration.
+		// (/containers/<base>/<service/rootfs)
+		// BUG: if rootfs was moved and we are
+		// still handling mounts this would fail
+		// but it doesn't fit our use case for now.
+		for _, svc := range services {
+			if service.ReadOnly(svc) {
+				// mount --bind -o ro ...
+				path := filepath.Join(svc.Bundle, "lower")
+				log.Log.Info(fmt.Sprintf("re-binding mount (RO) @ %s", path))
+				err = ginit.Bind(path, true).Call()
+				if err != nil {
+					return err
+				}
+			} else {
+				// mount -t overlay ...
+				lower := filepath.Join(svc.Bundle, "lower")
+				target := filepath.Join(svc.Bundle, "rootfs")
+				log.Log.Info(fmt.Sprintf("mounting overlayfs (RW) @ %s --> %s", lower, target))
+				err = ginit.Overlay(lower, target).Call()
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func New(cfg config.Config) *FSStore {
+	return &FSStore{
+		config:   cfg,
+		BasePath: cfg.Store.BasePath,
+		Mount:    cfg.Store.Mount,
+		MoveRoot: cfg.Store.MoveRoot,
+	}
 }

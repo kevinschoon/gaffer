@@ -5,20 +5,19 @@ import (
 	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/log"
 	"github.com/mesanine/gaffer/runc"
-	"github.com/mesanine/gaffer/service"
 	"github.com/mesanine/gaffer/store"
 )
 
 // Once launches on-boot services sequentially
 // TODO: Add retry / backoff
 func Once(cfg config.Config) error {
-	services, err := store.NewFSStore(cfg).Services()
+	services, err := store.New(cfg).Services()
 	if err != nil {
 		return err
 	}
 	for _, svc := range services {
 		log.Log.Info(fmt.Sprintf("starting on-boot service %s", svc.Id))
-		code, err := runc.New(svc.Id, svc.Bundle, service.ReadOnly(svc), cfg).Run()
+		code, err := runc.New(svc.Id, svc.Bundle, cfg).Run()
 		log.Log.Info(fmt.Sprintf("on-boot service %s exited with code %d", svc.Id, code))
 		if code != 0 || err != nil {
 			if err == nil {

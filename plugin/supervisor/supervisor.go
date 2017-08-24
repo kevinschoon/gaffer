@@ -8,7 +8,6 @@ import (
 	"github.com/mesanine/gaffer/event"
 	"github.com/mesanine/gaffer/log"
 	"github.com/mesanine/gaffer/runc"
-	"github.com/mesanine/gaffer/service"
 	"github.com/mesanine/gaffer/store"
 	"go.uber.org/zap"
 	"time"
@@ -30,13 +29,13 @@ type Supervisor struct {
 func (s *Supervisor) Name() string { return "gaffer.supervisor" }
 
 func (s *Supervisor) Configure(cfg config.Config) error {
-	services, err := store.NewFSStore(cfg).Services()
+	services, err := store.New(cfg).Services()
 	if err != nil {
 		return err
 	}
 	s.runcs = map[string]*runc.Runc{}
 	for _, svc := range services {
-		s.runcs[svc.Id] = runc.New(svc.Id, svc.Bundle, service.ReadOnly(svc), cfg)
+		s.runcs[svc.Id] = runc.New(svc.Id, svc.Bundle, cfg)
 	}
 	s.cancel = map[string]context.CancelFunc{}
 	s.err = make(chan error, 1)
