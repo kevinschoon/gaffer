@@ -18,11 +18,35 @@ func Bind(path string, readOnly bool) Syscall {
 	return Syscall{
 		Type: MOUNT,
 		mount: mount{
-			Target: path,
 			Source: path,
+			Target: path,
 			Flags:  flags,
 		},
 	}
+}
+
+// TmpFS performs a tmpfs mount at the given path
+// percentage must be between 0 and 100 or we will
+// panic. If it is zero we do not specify any flags.
+func TmpFS(path string, percentage int) Syscall {
+	if percentage < 0 || percentage > 100 {
+		panic("invalid tempfs percentage")
+	}
+	var data string
+	if percentage > 0 {
+		data = fmt.Sprintf("%d", percentage)
+	}
+	return Syscall{
+		Type: MOUNT,
+		Before: func() error {
+			return os.MkdirAll(path, 0755)
+		},
+		mount: mount{
+			Source: "rootfs", // TODO: Unsure if this has significance with tempfs
+			Target: path,
+			FSType: "tmpfs",
+			Data:   data,
+		}}
 }
 
 // Overlay mounts the provided path as
@@ -46,8 +70,8 @@ func Overlay(lower, target string) Syscall {
 		},
 		mount: mount{
 			Source: "overlay",
-			FSType: "overlay",
 			Target: target,
+			FSType: "overlay",
 			Flags:  0,
 			Data:   fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", lower, upper, work),
 		},
@@ -62,61 +86,3 @@ func Unmount(path string) Syscall {
 		},
 	}
 }
-
-/*
-
-type TempFS struct {
-	Path string
-	Size int
-}
-
-func (t TempFS) Syscall() Syscall {
-	return Syscall{
-		Type: MOUNT,
-		Mount: Mount{
-			Source: "tmpfs",
-			Target: t.Path,
-			FSType: "tmpfs",
-			Flags:  0,
-			Data:   fmt.Sprintf("size=%d", t.Path),
-		},
-	}
-}
-
-type OverlayFS struct {
-	Path  string
-	Upper string
-	Lower string
-	Work  string
-}
-
-func (o OverlayFS) Syscall() Syscall {
-	return Syscall{
-		Type: MOUNT,
-		Mount: Mount{
-			Source: "overlay",
-			Target: o.Path,
-			FSType: "overlay",
-			Flags:  0,
-			Data:   fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", o.Lower, o.Upper, o.Work),
-		},
-	}
-}
-func (o OverlayFS) Mount() (err error) {
-	err = os.MkdirAll(o.Upper, MountDirPerms)
-	if err != nil {
-		return err
-	}
-	err = os.MkdirAll(o.Work, MountDirPerms)
-	if err != nil {
-		return err
-	}
-	return syscall.Mount(
-		"overlay",
-		o.Path,
-		"overlay",
-		0,
-		fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", o.Lower, o.Upper, o.Work),
-	)
-}
-*/

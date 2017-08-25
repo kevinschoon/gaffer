@@ -1,69 +1,33 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/jawher/mow.cli"
-	"github.com/mesanine/gaffer/config"
-	"github.com/mesanine/gaffer/plugin"
-	http "github.com/mesanine/gaffer/plugin/http-server"
-	regSrv "github.com/mesanine/gaffer/plugin/registration"
-	rpc "github.com/mesanine/gaffer/plugin/rpc-server"
-	"github.com/mesanine/gaffer/plugin/supervisor"
-	"github.com/mesanine/gaffer/store"
-	"os"
-	"strings"
+	"github.com/mesanine/gaffer/ginit"
 )
 
 func initCMD() func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		var (
-			path       = cmd.StringArg("PATH", "/containers", "container init path")
-			root       = cmd.StringOpt("root", "/run/runc", "runc root path")
-			once       = cmd.BoolOpt("once", false, "run the services only once, synchronously")
-			httpPort   = cmd.IntOpt("http-port", 9090, "http server port")
-			rpcPort    = cmd.IntOpt("rpc-port", 10000, "rpc server port")
-			etcdSrvs   = cmd.StringOpt("etcd", "http://localhost:2379", "list of etcd endpoints seperated by ,")
-			mount      = cmd.BoolOpt("mount", false, "handle filesystem mounts")
-			moveRoot   = cmd.BoolOpt("move-root", false, "move moby created lower path to rootfs")
-			configPath = cmd.StringOpt("config-path", "/var/mesanine", "service configuration path")
+			newRoot = cmd.StringArg("NEW_ROOT", "", "new root path")
+			newInit = cmd.StringArg("NEW_INIT", "", "new init pid 1")
 		)
-		cmd.Spec = "[OPTIONS] [PATH]"
+		cmd.Spec = "[OPTIONS] NEW_ROOT NEW_INIT"
 		cmd.Action = func() {
-			cfg := config.Config{
-				Store: config.Store{
-					MoveRoot:   *moveRoot,
-					Mount:      *mount,
-					BasePath:   *path,
-					ConfigPath: *configPath,
-				},
-				Runc: config.Runc{
-					Root: *root,
-				},
-				Etcd: config.Etcd{
-					Endpoints: strings.Split(*etcdSrvs, ","),
-				},
-				RPCServer: config.RPCServer{
-					Port: *rpcPort,
-				},
-				HTTPServer: config.HTTPServer{
-					Port: *httpPort,
-				},
+			if !ginit.IsRoot() {
+				maybe(fmt.Errorf("init can only be run as root"))
 			}
-			store := store.New(cfg)
-			maybe(store.Init())
-			defer func() {
-				maybe(store.Close())
-			}()
-			if *once {
-				maybe(supervisor.Once(cfg))
-				os.Exit(0)
+			isMem, err := ginit.IsMemFS("/")
+			maybe(err)
+			if !isMem {
+				maybe(fmt.Errorf("current root is not ramfs or tempfs, refusing to switch_root"))
 			}
-			reg := plugin.Registry{}
-			maybe(reg.Register(&http.Server{}))
-			maybe(reg.Register(&regSrv.Server{}))
-			maybe(reg.Register(&supervisor.Supervisor{}))
-			maybe(reg.Register(&rpc.Server{}))
-			maybe(reg.Configure(cfg))
-			maybe(reg.Run())
+			// Only supporting tempfs for now
+			maybe(ginit.TmpFS(*newRoot, 0).Call())
+			opts, err := ginit.NewSwitchOptions(*newRoot)
+			maybe(err)
+			maybe(ginit.SwitchRoot(*opts))
+			maybe(ginit.Exec(*newInit))
 		}
 	}
 }
