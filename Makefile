@@ -11,7 +11,7 @@ LDFLAGS ?= -w -s -X $(VERSION_PATH).Version=$(VERSION) -X $(VERSION_PATH).GitSHA
 
 all: protos bindata test build
 
-ci: dep all
+ci: all
 
 test:
 	go $@ -v $(PACKAGES)

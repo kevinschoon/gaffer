@@ -25,7 +25,6 @@ _testmain.go
 
 *.swp
 
-vendor
 release
 
 bin
