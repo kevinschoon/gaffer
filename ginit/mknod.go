@@ -2,6 +2,16 @@ package ginit
 
 import "golang.org/x/sys/unix"
 
+// Node represents a Linux "node" or "file" in a way that is simplier
+// than the unix.Stat_t type.
+type Node struct {
+	Name  string
+	Mode  uint32
+	Type  uint32
+	Major int64
+	Minor int64
+}
+
 // Mkdev is used to build the value of linux devices (in /dev/) which specifies major
 // and minor number of the newly created device special file.
 // Linux device nodes are a bit weird due to backwards compat with 16 bit device nodes.
