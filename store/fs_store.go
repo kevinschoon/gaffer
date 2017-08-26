@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/mesanine/gaffer/config"
-	"github.com/mesanine/gaffer/ginit"
+	"github.com/mesanine/gaffer/ginit/mount"
 	"github.com/mesanine/gaffer/log"
 	"github.com/mesanine/gaffer/service"
 	"io/ioutil"
@@ -53,7 +53,7 @@ func (s FSStore) Close() error {
 		}
 		for _, svc := range services {
 			log.Log.Info(fmt.Sprintf("unmounting rootfs @ %s", svc.Bundle))
-			err := ginit.Unmount(filepath.Join(svc.Bundle, "rootfs")).Call()
+			err := mount.Unmount(filepath.Join(svc.Bundle, "rootfs"))
 			if err != nil {
 				return err
 			}
@@ -128,7 +128,7 @@ func (s FSStore) Init() error {
 				// mount --bind -o ro ...
 				path := filepath.Join(svc.Bundle, "lower")
 				log.Log.Info(fmt.Sprintf("re-binding mount (RO) @ %s", path))
-				err = ginit.Bind(path, true).Call()
+				err = mount.Mount(mount.Bind(path, true))
 				if err != nil {
 					return err
 				}
@@ -137,7 +137,7 @@ func (s FSStore) Init() error {
 				lower := filepath.Join(svc.Bundle, "lower")
 				target := filepath.Join(svc.Bundle, "rootfs")
 				log.Log.Info(fmt.Sprintf("mounting overlayfs (RW) @ %s --> %s", lower, target))
-				err = ginit.Overlay(lower, target).Call()
+				err = mount.Mount(mount.Overlay(lower, target))
 				if err != nil {
 					return err
 				}

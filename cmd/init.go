@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/jawher/mow.cli"
 	"github.com/mesanine/gaffer/ginit"
+	"github.com/mesanine/gaffer/ginit/mount"
 )
 
 func initCMD() func(*cli.Cmd) {
@@ -23,7 +24,7 @@ func initCMD() func(*cli.Cmd) {
 				maybe(fmt.Errorf("current root is not ramfs or tempfs, refusing to switch_root"))
 			}
 			// Only supporting tempfs for now
-			maybe(ginit.TmpFS(*newRoot, 0).Call())
+			maybe(mount.Mount(mount.TmpFS(*newRoot, 0)))
 			opts, err := ginit.NewSwitchOptions(*newRoot)
 			maybe(err)
 			maybe(ginit.SwitchRoot(*opts))
