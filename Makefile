@@ -5,7 +5,7 @@ GOPATH := $(shell echo $$GOPATH)
 GITSHA ?= $(shell git rev-parse HEAD)
 VERSION ?= $(shell git describe --tags 2>/dev/null)
 PACKAGES ?= $(shell go list ./...|grep -v vendor)
-LDFLAGS ?= -w -s -X $(VERSION_PATH).Version=$(VERSION) -X $(VERSION_PATH).GitSHA=$(GITSHA)
+LDFLAGS ?= -w -s -X $(VERSION_PATH).Version=$(VERSION) -X $(VERSION_PATH).GitSHA=$(GITSHA) -extldflags \"-fno-PIC -static\"
 
 .PHONY: all bindata dep docker protos test
 
@@ -13,12 +13,19 @@ all: protos bindata test build
 
 ci: all
 
+bin/gaffer:
+	mkdir bin 2>/dev/null || true
+	GOARCH=amd64 go build -buildmode=pie -ldflags "$(LDFLAGS)" -o ./bin/gaffer
+
 test:
 	go $@ -v $(PACKAGES)
 	go vet $(PACKAGES)
 
 bindata:
 	go-bindata -pkg server -o plugin/http-server/bindata.go www/...
+
+clean:
+	rm -v ./bin/gaffer || true
 
 dep:
 	dep ensure
@@ -34,7 +41,7 @@ protos:
 
 build:
 	mkdir -v ./bin 2>/dev/null || true
-	GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o ./bin/gaffer
+	GOARCH=amd64 go build -buildmode=pie -ldflags "$(LDFLAGS)" -o ./bin/gaffer
 
 docker: 
 	docker build -t $(DOCKER_IMAGE) .
