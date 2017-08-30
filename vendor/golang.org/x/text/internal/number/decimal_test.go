@@ -22,6 +22,15 @@ func mkfloat(num string) float64 {
 // digits are shifted. Numbers may have an additional exponent or be the special
 // value NaN, Inf, or -Inf.
 func mkdec(num string) (d Decimal) {
+	var r RoundingContext
+	d.Convert(r, dec(num))
+	return
+}
+
+type dec string
+
+func (s dec) Convert(d *Decimal, _ RoundingContext) {
+	num := string(s)
 	if num[0] == '-' {
 		d.Neg = true
 		num = num[1:]
@@ -52,7 +61,7 @@ func mkdec(num string) (d Decimal) {
 	for i := range d.Digits {
 		d.Digits[i] -= '0'
 	}
-	return d.normalize()
+	*d = d.normalize()
 }
 
 func byteNum(s string) []byte {
@@ -77,11 +86,11 @@ func TestDecimalString(t *testing.T) {
 		want string
 	}{
 		{want: "0"},
-		{Decimal{Digits: nil, Exp: 1000}, "0"}, // exponent of 1000 is ignored
-		{Decimal{Digits: byteNum("12345"), Exp: 0}, "0.12345"},
-		{Decimal{Digits: byteNum("12345"), Exp: -3}, "0.00012345"},
-		{Decimal{Digits: byteNum("12345"), Exp: +3}, "123.45"},
-		{Decimal{Digits: byteNum("12345"), Exp: +10}, "1234500000"},
+		{Decimal{digits: digits{Digits: nil, Exp: 1000}}, "0"}, // exponent of 1000 is ignored
+		{Decimal{digits: digits{Digits: byteNum("12345"), Exp: 0}}, "0.12345"},
+		{Decimal{digits: digits{Digits: byteNum("12345"), Exp: -3}}, "0.00012345"},
+		{Decimal{digits: digits{Digits: byteNum("12345"), Exp: +3}}, "123.45"},
+		{Decimal{digits: digits{Digits: byteNum("12345"), Exp: +10}}, "1234500000"},
 	} {
 		if got := test.x.String(); got != test.want {
 			t.Errorf("%v == %q; want %q", test.x, got, test.want)
@@ -195,13 +204,10 @@ func TestRounding(t *testing.T) {
 		negModes := tc.modes
 		negModes[1], negModes[6] = negModes[6], negModes[1]
 		for i, res := range negModes {
-			if res != "0" {
-				negModes[i] = "-" + res
-			}
+			negModes[i] = "-" + res
 		}
-
 		for i, m := range modes {
-			t.Run(fmt.Sprintf("v:%s/n:%d/%s", tc.x, tc.n, m), func(t *testing.T) {
+			t.Run(fmt.Sprintf("x:%s/n:%d/%s", tc.x, tc.n, m), func(t *testing.T) {
 				d := mkdec(tc.x)
 				d.round(m, tc.n)
 				if got := d.String(); got != tc.modes[i] {
@@ -224,9 +230,7 @@ func TestRounding(t *testing.T) {
 					t.Errorf("neg decimal: got %q; want %q", d.String(), want)
 				}
 
-				if f = mkfloat(tc.x); f != 0 {
-					f = -f // avoid creating -0.0
-				}
+				f = -mkfloat(tc.x)
 				f = m.roundFloat(f/mult) * mult
 				if got := fmt.Sprintf("%.0f", f); got != negModes[i] {
 					t.Errorf("neg float: got %q; want %q", got, negModes[i])
@@ -237,14 +241,18 @@ func TestRounding(t *testing.T) {
 }
 
 func TestConvert(t *testing.T) {
-	scale2 := &RoundingContext{Scale: 2}
-	scale2away := &RoundingContext{Scale: 2, Mode: AwayFromZero}
-	inc0_05 := &RoundingContext{Increment: 5, Scale: 2}
-	inc50 := &RoundingContext{Increment: 50}
-	prec3 := &RoundingContext{Precision: 3}
+	scale2 := RoundingContext{}
+	scale2.SetScale(2)
+	scale2away := RoundingContext{Mode: AwayFromZero}
+	scale2away.SetScale(2)
+	inc0_05 := RoundingContext{Increment: 5}
+	inc0_05.SetScale(2)
+	inc50 := RoundingContext{Increment: 50}
+	prec3 := RoundingContext{}
+	prec3.SetPrecision(3)
 	testCases := []struct {
 		x   interface{}
-		rc  *RoundingContext
+		rc  RoundingContext
 		out string
 	}{
 		{int8(-34), scale2, "-34"},
@@ -257,6 +265,8 @@ func TestConvert(t *testing.T) {
 		{uint32(234), scale2, "234"},
 		{uint64(234), scale2, "234"},
 		{uint(234), scale2, "234"},
+		{-0.001, scale2, "-0"},
+		{-1e9, scale2, "-1000000000.00"},
 		{0.234, scale2, "0.23"},
 		{0.234, scale2away, "0.24"},
 		{0.1234, prec3, "0.123"},
@@ -288,7 +298,7 @@ func TestConvert(t *testing.T) {
 
 type converter int
 
-func (c converter) Convert(d *Decimal, r *RoundingContext) {
+func (c converter) Convert(d *Decimal, r RoundingContext) {
 	d.Digits = append(d.Digits, 1, 0, 0)
 	d.Exp = 3
 }
