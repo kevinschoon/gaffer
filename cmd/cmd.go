@@ -8,6 +8,7 @@ import (
 	"github.com/mesanine/gaffer/version"
 	"go.uber.org/zap"
 	"os"
+	"path/filepath"
 )
 
 func maybe(err error) {
@@ -55,5 +56,19 @@ func Run() {
 	app.Command("hosts", "list remote Gaffer hosts", hostsCMD())
 	app.Command("status", "list the status of a remote host", statusCMD())
 	app.Command("restart", "restart a remote service", restartCMD())
+	// Allow Gaffer to be run in the "multi-call"
+	// style of busybox where executables are symlinked
+	// like /sbin/init --> /bin/busybox.
+	args := []string{"gaffer"}
+	_, exe := filepath.Split(os.Args[0])
+	switch exe {
+	case "init":
+		args = append(args, "init")
+		for _, arg := range os.Args[1:] {
+			args = append(args, arg)
+		}
+		maybe(app.Run(args))
+		return
+	}
 	maybe(app.Run(os.Args))
 }
