@@ -62,7 +62,7 @@ func initCMD() func(*cli.Cmd) {
 			))
 			if *helper != "" {
 				log.Log.Info(fmt.Sprintf("calling init helper script: %s", *helper))
-				recovery(ginit.RunScript(ginit.ScriptOptions{Path: *helper}))
+				recovery(ginit.Call(ginit.ScriptArgs{Cmd: *helper}))
 				log.Log.Info("helper script ran successfully")
 			}
 			log.Log.Info("launching new PID 1")
