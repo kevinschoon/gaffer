@@ -18,15 +18,18 @@ import (
 // with LinuxKit's /containers/{service,onboot}
 // paths.
 type FSStore struct {
-	BasePath string
-	Mount    bool
-	MoveRoot bool
-	config   config.Config
+	BasePath    string
+	Mount       bool
+	MoveRoot    bool
+	Environment map[string]map[string]string
 }
 
 func (s FSStore) Services() ([]service.Service, error) {
 	dirs, err := ioutil.ReadDir(s.BasePath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return []service.Service{}, nil
+		}
 		return nil, err
 	}
 	svcs := []service.Service{}
@@ -91,14 +94,7 @@ func (s FSStore) Init() error {
 				return err
 			}
 		}
-		// If we were given environment variables
-		// to configure the service with we modify
-		// it's config.json file.
-		updates, err := s.config.Store.Envs()
-		if err != nil {
-			return err
-		}
-		if envs, ok := updates[svc.Id]; ok {
+		if envs, ok := s.Environment[svc.Id]; ok {
 			updated := service.Spec(svc)
 			// Append any existing environment variables
 			// in the config.json file
@@ -147,11 +143,11 @@ func (s FSStore) Init() error {
 	return nil
 }
 
-func New(cfg config.Config) *FSStore {
+func New(cfg config.Config, dir string) *FSStore {
 	return &FSStore{
-		config:   cfg,
-		BasePath: cfg.Store.BasePath,
-		Mount:    cfg.Store.Mount,
-		MoveRoot: cfg.Store.MoveRoot,
+		BasePath:    filepath.Join(cfg.Store.BasePath, dir),
+		Environment: cfg.Store.Environment,
+		Mount:       cfg.Store.Mount,
+		MoveRoot:    cfg.Store.MoveRoot,
 	}
 }

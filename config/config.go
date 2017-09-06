@@ -2,69 +2,130 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
-	"github.com/mesanine/gaffer/log"
 	"io/ioutil"
-	"path/filepath"
 )
 
+// Config holds all configurable options
+// within Gaffer.
 type Config struct {
-	Store      Store
-	Runc       Runc
-	Etcd       Etcd
-	RPCServer  RPCServer
-	HTTPServer HTTPServer
-	User       User
+	Init    Init   `json:"init"`
+	Store   Store  `json:"store"`
+	Runc    Runc   `json:"runc"`
+	Etcd    Etcd   `json:"etcd"`
+	User    User   `json:"user"`
+	Logger  Logger `json:"logger"`
+	Plugins struct {
+		RPCServer  RPCServer  `json:"rpc_server"`
+		HTTPServer HTTPServer `json:"http_server"`
+	}
 }
 
+// Init holds OS initialization options
+type Init struct {
+	// Helper is the path to a "helper"
+	// script that we execute to initialize
+	// our OS on boot.
+	Helper string `json:"helper"`
+	// NewRoot is the path where the existing
+	// tempfs contents are compied and switch
+	// moves the base rootfs to.
+	NewRoot string `json:"new_root"`
+}
+
+// Store holds configuration options for managing
+// on-disk runc container FS.
 type Store struct {
-	BasePath   string
-	ConfigPath string
+	BasePath   string `json:"base_path"`
+	ConfigPath string `json:"config_path"`
 	// Toggle if we should handle overlay
 	// mounts ourself.
-	Mount bool
+	Mount bool `json:"mount"`
 	// Move lower --> rootfs
-	MoveRoot bool
+	MoveRoot bool `json:"move_root"`
+	// Environment contains environment variable
+	// overrides for runc apps. This is the primary
+	// way os services are configured at boot.
+	Environment map[string]map[string]string `json:"environment"`
 }
 
+// Runc holds runc specific options.
 type Runc struct {
-	Root string
+	Root string `json:"root"`
 }
 
+// Etcd holds etcd specific options.
 type Etcd struct {
-	Endpoints []string
+	Endpoints []string `json:"endpoints"`
 }
 
+// RPCServer holds rpc-server plugin specific options.
 type RPCServer struct {
-	Port int
+	Port int `json:"port"`
 }
 
+func (s RPCServer) Enabled() bool { return s.Port != 0 }
+
+// HTTPServer holds http-server plugin specific options.
 type HTTPServer struct {
-	Port int
+	Port int `json:"port"`
 }
 
+func (s HTTPServer) Enabled() bool { return s.Port != 0 }
+
+// User holds user specific options.
 type User struct {
-	User string
+	User string `json:"user"`
 }
 
-func (s Store) Envs() (map[string]map[string]string, error) {
-	envs := map[string]map[string]string{}
-	dirs, err := ioutil.ReadDir(s.ConfigPath)
+// Logger holds logger specific options.
+type Logger struct {
+	// Device is the path to a
+	// block device like /dev/stdout
+	Device string `json:"device"`
+	// LogDir is a path to a directory
+	// where log files will be
+	// written to and rotated.
+	LogDir string `json:"log_dir"`
+	// Debug toggles debug logging.
+	Debug bool `json:"debug"`
+	// JSON configures the logger
+	// to encode log output with JSON.
+	JSON bool `json:"json"`
+	// MaxSize specifies
+	// the maximum size (mb) of a
+	// log before it is rotated. Since
+	// Mesanine may operate only in
+	// system memory this should be
+	// very low by default.
+	MaxSize int `json:"max_size"`
+	// MaxBackups is the number
+	// of backups to retain after
+	// rotation. This number should
+	// also be very low by default
+	MaxBackups int `json:"max_backups"`
+	// Compress indicates if
+	// rotated log files should be
+	// compressed
+	Compress bool `json:"compress"`
+}
+
+// New creates a new Config based on
+// pre-configured defaults.
+func New() *Config {
+	config := *DefaultConfig
+	return &config
+}
+
+// Load updates a configuration with options
+// specified within a file.
+func Load(path string, cfg *Config) error {
+	raw, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Log.Warn(fmt.Sprintf("could not load config from %s: %s", s.ConfigPath, err.Error()))
-		return envs, nil
+		return err
 	}
-	for _, dir := range dirs {
-		raw, err := ioutil.ReadFile(filepath.Join(s.ConfigPath, dir.Name(), "envs.json"))
-		if err != nil {
-			continue
-		}
-		svcEnvs := map[string]string{}
-		err = json.Unmarshal(raw, &svcEnvs)
-		if err != nil {
-			return nil, err
-		}
-		envs[dir.Name()] = svcEnvs
+	err = json.Unmarshal(raw, cfg)
+	if err != nil {
+		return err
 	}
-	return envs, nil
+	return nil
 }

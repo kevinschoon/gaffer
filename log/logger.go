@@ -8,6 +8,8 @@ like /dev/stderr.
 package log
 
 import (
+	"fmt"
+	"github.com/mesanine/gaffer/config"
 	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -19,57 +21,24 @@ const LogFileName = "gaffer.log"
 
 var Log *zap.Logger
 
-// Config is used to configure
-// the global Gaffer logger.
-type Config struct {
-	// Device is the path to a
-	// block device like /dev/stdout
-	Device string
-	// LogDir is a path to a directory
-	// where log files will be
-	// written to and rotated.
-	LogDir string
-	// Debug toggles debug logging.
-	Debug bool
-	// JSON configures the logger
-	// to encode log output with JSON.
-	JSON bool
-	// MaxSize specifies
-	// the maximum size (mb) of a
-	// log before it is rotated. Since
-	// Mesanine may operate only in
-	// system memory this should be
-	// very low by default.
-	MaxSize int
-	// MaxBackups is the number
-	// of backups to retain after
-	// rotation. This number should
-	// also be very low by default
-	MaxBackups int
-	// Compress indicates if
-	// rotated log files should be
-	// compressed
-	Compress bool
-}
-
 // Setup configures the global
 // logger. This function should
 // only be called once when
 // the program is initialized.
-func Setup(config Config) error {
+func Setup(config config.Config) error {
 	var (
 		encoderConfig zapcore.EncoderConfig
 		encoder       zapcore.Encoder
 		level         zapcore.Level
 	)
-	if config.Debug {
+	if config.Logger.Debug {
 		encoderConfig = zap.NewDevelopmentEncoderConfig()
 		level = zapcore.DebugLevel
 	} else {
 		encoderConfig = zap.NewProductionEncoderConfig()
 		level = zapcore.InfoLevel
 	}
-	if config.JSON {
+	if config.Logger.JSON {
 		encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
 		encoder = zapcore.NewJSONEncoder(encoderConfig)
 	} else {
@@ -81,8 +50,8 @@ func Setup(config Config) error {
 	// By default this will
 	// be /dev/stderr. In Mesanine
 	// this will be /dev/ttyS0.
-	if config.Device != "" {
-		fp, err := os.OpenFile(config.Device, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	if config.Logger.Device != "" {
+		fp, err := os.OpenFile(config.Logger.Device, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 		if err != nil {
 			return err
 		}
@@ -92,16 +61,17 @@ func Setup(config Config) error {
 	// if it is missing. Log files
 	// will be written and rotated
 	// here if configured.
-	if config.LogDir != "" {
-		err := os.MkdirAll(config.LogDir, 0755)
+	if config.Logger.LogDir != "" {
+		err := os.MkdirAll(config.Logger.LogDir, 0755)
+		fmt.Println("RIGHT HERE: ", config.Logger.LogDir, err)
 		if err != nil {
 			return err
 		}
 		sync := zapcore.AddSync(&lumberjack.Logger{
-			MaxSize:    config.MaxSize,
-			MaxBackups: config.MaxBackups,
-			Filename:   filepath.Join(config.LogDir, LogFileName),
-			Compress:   config.Compress,
+			MaxSize:    config.Logger.MaxSize,
+			MaxBackups: config.Logger.MaxBackups,
+			Filename:   filepath.Join(config.Logger.LogDir, LogFileName),
+			Compress:   config.Logger.Compress,
 		})
 		cores = append(cores, zapcore.NewCore(encoder, sync, zap.NewAtomicLevelAt(level)))
 	}

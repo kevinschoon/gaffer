@@ -8,22 +8,16 @@ import (
 	"github.com/mesanine/gaffer/host"
 	rpc "github.com/mesanine/gaffer/plugin/rpc-server"
 	"os"
-	"strings"
 )
 
-func hostsCMD() func(*cli.Cmd) {
+func hostsCMD(cfg *config.Config) func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		cmd.Spec = "[OPTIONS]"
 		var (
-			etcdSrvs = cmd.StringOpt("etcd", "http://localhost:2379", "list of etcd endpoints seperated by ,")
+		//etcdSrvs = cmd.StringOpt("etcd", "http://localhost:2379", "list of etcd endpoints seperated by ,")
 		)
 		cmd.Action = func() {
-			cfg := config.Config{
-				Etcd: config.Etcd{
-					Endpoints: strings.Split(*etcdSrvs, ","),
-				},
-			}
-			cli, err := client.New(cfg)
+			cli, err := client.New(*cfg)
 			maybe(err)
 			hosts, err := cli.Hosts()
 			maybe(err)

@@ -101,7 +101,7 @@ func (s *Server) Configure(cfg config.Config) error {
 		}
 		s.user = usr
 	}
-	s.port = cfg.HTTPServer.Port
+	s.port = cfg.Plugins.HTTPServer.Port
 	s.status = Status{}
 	s.stop = make(chan bool, 1)
 	return nil

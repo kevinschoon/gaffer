@@ -29,7 +29,7 @@ type Supervisor struct {
 func (s *Supervisor) Name() string { return "gaffer.supervisor" }
 
 func (s *Supervisor) Configure(cfg config.Config) error {
-	services, err := store.New(cfg).Services()
+	services, err := store.New(cfg, "services").Services()
 	if err != nil {
 		return err
 	}

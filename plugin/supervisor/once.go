@@ -10,8 +10,8 @@ import (
 
 // Once launches on-boot services sequentially
 // TODO: Add retry / backoff
-func Once(cfg config.Config) error {
-	services, err := store.New(cfg).Services()
+func Once(cfg config.Config, db *store.FSStore) error {
+	services, err := db.Services()
 	if err != nil {
 		return err
 	}

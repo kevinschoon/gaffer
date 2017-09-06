@@ -30,9 +30,9 @@ type Server struct {
 func (s *Server) Name() string { return "gaffer.rpc-server" }
 
 func (s *Server) Configure(cfg config.Config) error {
-	s.db = store.New(cfg)
+	s.db = store.New(cfg, "services")
 	s.eb = nil
-	s.port = cfg.RPCServer.Port
+	s.port = cfg.Plugins.RPCServer.Port
 	s.stop = make(chan bool, 1)
 	return nil
 }
