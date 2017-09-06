@@ -1,5 +1,7 @@
 # Gaffer
 
+[![CircleCI](https://img.shields.io/circleci/project/github/mesanine/gaffer.svg)]()
+
 Gaffer is the init system and process manager for [Mesanine](https://github.com/mesanine). It is designed to control important system and user processes by launching 
 containers with [Runc](https://github.com/opencontainers/runc). Gaffer aims to be compatible with [Linuxkit](https://github.com/linuxkit/linuxkit) which is used to 
 build Mesanine. While components in Linuxkit have generally very discrete functions, Gaffer takes a more encompassing and opinionated approach to system configuration.
