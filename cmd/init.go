@@ -114,7 +114,7 @@ func initCMD(cfg *config.Config) func(*cli.Cmd) {
 				log.Log.Info("onboot services finished")
 				db = store.New(*cfg, "services")
 				maybe(db.Init())
-				reg := plugin.Registry{}
+				reg := plugin.NewRegistry()
 				if cfg.Plugins.HTTPServer.Enabled() {
 					maybe(reg.Register(&http.Server{}))
 				}
@@ -124,7 +124,10 @@ func initCMD(cfg *config.Config) func(*cli.Cmd) {
 				//maybe(reg.Register(&regSrv.Server{}))
 				maybe(reg.Register(&supervisor.Supervisor{}))
 				maybe(reg.Configure(*cfg))
-				maybe(reg.Run())
+				go func() {
+					maybe(reg.Run())
+				}()
+				maybe(ginit.Init(reg))
 				maybe(db.Close())
 			}
 		}

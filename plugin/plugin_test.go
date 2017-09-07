@@ -30,7 +30,7 @@ func (mp *MockPlugin) Stop() error {
 }
 
 func TestRegistry(t *testing.T) {
-	reg := Registry{}
+	reg := NewRegistry()
 	assert.NoError(t, reg.Register(&MockPlugin{}))
 	assert.NoError(t, reg.Configure(config.Config{}))
 	var wg sync.WaitGroup
@@ -39,6 +39,6 @@ func TestRegistry(t *testing.T) {
 		defer wg.Done()
 		assert.NoError(t, reg.Run())
 	}()
-	assert.NoError(t, reg["gaffer.MockPlugin"].Stop())
+	assert.NoError(t, reg.plugins["gaffer.MockPlugin"].Stop())
 	wg.Wait()
 }
