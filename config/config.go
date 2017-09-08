@@ -8,12 +8,14 @@ import (
 // Config holds all configurable options
 // within Gaffer.
 type Config struct {
-	Init    Init   `json:"init"`
-	Store   Store  `json:"store"`
-	Runc    Runc   `json:"runc"`
-	Etcd    Etcd   `json:"etcd"`
-	User    User   `json:"user"`
-	Logger  Logger `json:"logger"`
+	Init   Init   `json:"init"`
+	Store  Store  `json:"store"`
+	Runc   Runc   `json:"runc"`
+	Etcd   Etcd   `json:"etcd"`
+	User   User   `json:"user"`
+	Logger Logger `json:"logger"`
+	// List of enabled plugins
+	Enabled []string `json:"enabled"`
 	Plugins struct {
 		RPCServer  RPCServer  `json:"rpc_server"`
 		HTTPServer HTTPServer `json:"http_server"`
@@ -63,14 +65,10 @@ type RPCServer struct {
 	Port int `json:"port"`
 }
 
-func (s RPCServer) Enabled() bool { return s.Port != 0 }
-
 // HTTPServer holds http-server plugin specific options.
 type HTTPServer struct {
 	Port int `json:"port"`
 }
-
-func (s HTTPServer) Enabled() bool { return s.Port != 0 }
 
 // User holds user specific options.
 type User struct {

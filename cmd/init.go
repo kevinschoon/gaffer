@@ -6,14 +6,11 @@ import (
 	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/log"
 	"github.com/mesanine/gaffer/plugin"
-	http "github.com/mesanine/gaffer/plugin/http-server"
-	"go.uber.org/zap"
-	"os"
-	//regSrv "github.com/mesanine/gaffer/plugin/registration"
-	rpc "github.com/mesanine/gaffer/plugin/rpc-server"
 	"github.com/mesanine/gaffer/plugin/supervisor"
 	"github.com/mesanine/gaffer/store"
 	"github.com/mesanine/ginit"
+	"go.uber.org/zap"
+	"os"
 )
 
 const (
@@ -93,6 +90,8 @@ func initCMD(cfg *config.Config) func(*cli.Cmd) {
 						Data:   "nosuid,noexec,relatime,size=10m,nr_inodes=248418,mode=755",
 					}))
 				log.Log.Info(fmt.Sprintf("calling init helper script: %s", cfg.Init.Helper))
+				// Call the init helper script which does most of the
+				// heavy lifting for now.
 				maybe(
 					ginit.Call(ginit.ScriptArgs{
 						Cmd: cfg.Init.Helper,
@@ -104,25 +103,26 @@ func initCMD(cfg *config.Config) func(*cli.Cmd) {
 						}}))
 				log.Log.Info("helper script ran successfully")
 				log.Log.Info("PRE_INIT finished, launching INIT")
-				maybe(ginit.Exec(os.Args[0], "init", "--stage=INIT"))
+				// Perform an exec syscall which becomes PID 1
+				maybe(ginit.Exec(os.Args[0], "--config=/etc/gaffer.json", "init", "--stage=INIT"))
 			case INIT:
 				log.Log.Info("starting onboot services")
+				// Launch any containers synchronously
+				// that exist in directory "onboot" in
+				// the store root.
 				db := store.New(*cfg, "onboot")
 				maybe(db.Init())
 				maybe(supervisor.Once(*cfg, db))
 				maybe(db.Close())
 				log.Log.Info("onboot services finished")
+				// Launch all system services from the
+				// "services" path in the store root.
 				db = store.New(*cfg, "services")
 				maybe(db.Init())
 				reg := plugin.NewRegistry()
-				if cfg.Plugins.HTTPServer.Enabled() {
-					maybe(reg.Register(&http.Server{}))
+				for _, name := range cfg.Enabled {
+					maybe(reg.Register(plugin.Find(name)))
 				}
-				if cfg.Plugins.RPCServer.Enabled() {
-					maybe(reg.Register(&rpc.Server{}))
-				}
-				//maybe(reg.Register(&regSrv.Server{}))
-				maybe(reg.Register(&supervisor.Supervisor{}))
 				maybe(reg.Configure(*cfg))
 				go func() {
 					maybe(reg.Run())

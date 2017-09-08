@@ -27,6 +27,7 @@ var DefaultConfig = &Config{
 		MaxBackups: 2,
 		Compress:   true,
 	},
+	Enabled: []string{"gaffer.supervisor", "gaffer.register"},
 	Plugins: struct {
 		RPCServer  RPCServer  `json:"rpc_server"`
 		HTTPServer HTTPServer `json:"http_server"`

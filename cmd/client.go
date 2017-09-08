@@ -13,9 +13,6 @@ import (
 func hostsCMD(cfg *config.Config) func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		cmd.Spec = "[OPTIONS]"
-		var (
-		//etcdSrvs = cmd.StringOpt("etcd", "http://localhost:2379", "list of etcd endpoints seperated by ,")
-		)
 		cmd.Action = func() {
 			cli, err := client.New(*cfg)
 			maybe(err)

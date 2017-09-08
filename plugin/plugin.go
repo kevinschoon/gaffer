@@ -1,8 +1,13 @@
 package plugin
 
 import (
+	"fmt"
 	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/event"
+	http "github.com/mesanine/gaffer/plugin/http-server"
+	reg "github.com/mesanine/gaffer/plugin/registration"
+	rpc "github.com/mesanine/gaffer/plugin/rpc-server"
+	"github.com/mesanine/gaffer/plugin/supervisor"
 )
 
 // Plugin implements some unit of work
@@ -19,4 +24,18 @@ type Plugin interface {
 	Run(*event.EventBus) error
 	// Stop stops the blocking run function.
 	Stop() error
+}
+
+func Find(name string) Plugin {
+	switch name {
+	case "gaffer.register":
+		return &reg.Server{}
+	case "gaffer.rpc_server":
+		return &rpc.Server{}
+	case "gaffer.http_server":
+		return &http.Server{}
+	case "gaffer.supervisor":
+		return &supervisor.Supervisor{}
+	}
+	panic(fmt.Sprintf("unknown plugin %s", name))
 }

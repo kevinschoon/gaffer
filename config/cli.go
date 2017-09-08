@@ -197,6 +197,17 @@ func SetInitOpts(cmd *cli.Cmd, cfg *Config) {
 		},
 		"migrate moby created lower path to rootfs",
 	)
+	cmd.VarArg(
+		"plugins",
+		value{
+			setFn: func(s string) error {
+				cfg.Enabled = strings.Split(s, ",")
+				return nil
+			},
+			getFn: func() string { return fmt.Sprintf("%s", cfg.Enabled) },
+		},
+		"enabled plugins",
+	)
 }
 
 type value struct {

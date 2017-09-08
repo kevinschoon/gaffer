@@ -25,7 +25,7 @@ func Run() {
 	app.Spec = "[OPTIONS]"
 	app.Version("version", fmt.Sprintf("version=%s\ngitsha=%s", version.Version, version.GitSHA))
 	var (
-		configPath = app.StringOpt("c config", "/etc/gaffer.json", "path to a gaffer.json file")
+		configPath = app.StringOpt("c config", "", "path to a gaffer.json file")
 	)
 	cfg := config.New()
 	config.SetCLIOpts(app, cfg)
