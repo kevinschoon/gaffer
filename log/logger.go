@@ -8,7 +8,6 @@ like /dev/stderr.
 package log
 
 import (
-	"fmt"
 	"github.com/mesanine/gaffer/config"
 	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
@@ -63,7 +62,6 @@ func Setup(config config.Config) error {
 	// here if configured.
 	if config.Logger.LogDir != "" {
 		err := os.MkdirAll(config.Logger.LogDir, 0755)
-		fmt.Println("RIGHT HERE: ", config.Logger.LogDir, err)
 		if err != nil {
 			return err
 		}
