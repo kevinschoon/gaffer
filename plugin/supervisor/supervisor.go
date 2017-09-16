@@ -60,31 +60,11 @@ func (s *Supervisor) RPC() *grpc.ServiceDesc { return &_RPC_serviceDesc }
 func (s *Supervisor) Run(eb *event.EventBus) error {
 	// Launch all registered containers
 	s.init(eb)
-	sub := event.NewSubscriber()
-	eb.Subscribe(sub)
-	defer eb.Unsubscribe(sub)
-	evtCh := sub.Chan()
-	for {
-		select {
-		case <-s.stop:
-			return nil
-		case evt := <-evtCh:
-			switch {
-			case event.Is(event.REQUEST_METRICS)(evt):
-				for name, rc := range s.runcs {
-					stats, err := rc.Stats()
-					if err != nil {
-						log.Log.Warn(fmt.Sprintf("failed to collect stats from %s: %s", name, err.Error()))
-						continue
-					}
-					eb.Push(event.New(
-						event.SERVICE_METRICS,
-						event.WithID(name),
-						event.WithStats(*stats),
-					))
-				}
-			}
-		}
+	select {
+	case err := <-s.err:
+		return err
+	case <-s.stop:
+		return nil
 	}
 }
 

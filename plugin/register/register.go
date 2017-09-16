@@ -3,34 +3,38 @@ package register
 import (
 	"fmt"
 	"github.com/cenkalti/backoff"
-	"github.com/jawher/mow.cli"
 	"github.com/mesanine/gaffer/client"
 	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/event"
 	"github.com/mesanine/gaffer/log"
-	"google.golang.org/grpc"
 	"time"
 )
 
 const RegistrationInterval = 25 * time.Second
 
 type Server struct {
+	err    chan error
 	stop   chan bool
 	config config.Config
 }
 
-func (s Server) Name() string { return "gaffer.register" }
+func New() *Server {
+	return &Server{
+		err:  make(chan error, 1),
+		stop: make(chan bool, 1),
+	}
+}
+
+func (s Server) Name() string { return "register" }
 
 func (s *Server) Configure(cfg config.Config) error {
 	s.config = cfg
-	s.stop = make(chan bool, 1)
 	return nil
 }
 
 func (s *Server) Run(eb *event.EventBus) error {
-	errCh := make(chan error, 1)
 	go func() {
-		errCh <- backoff.RetryNotify(func() error {
+		s.err <- backoff.RetryNotify(func() error {
 			var cli *client.Client
 			defer func() {
 				if cli != nil {
@@ -57,22 +61,15 @@ func (s *Server) Run(eb *event.EventBus) error {
 			},
 		)
 	}()
-	for {
-		select {
-		case err := <-errCh:
-			return err
-		case <-s.stop:
-			return nil
-		}
+	select {
+	case err := <-s.err:
+		return err
+	case <-s.stop:
+		return nil
 	}
 }
 
 func (s *Server) Stop() error {
 	s.stop <- true
 	return nil
-}
-
-func (s *Server) RPC(*grpc.Server) {}
-func (s *Server) CLI(*grpc.ClientConn) cli.CmdInitializer {
-	return func(*cli.Cmd) {}
 }

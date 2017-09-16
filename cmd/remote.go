@@ -5,10 +5,7 @@ import (
 	"github.com/jawher/mow.cli"
 	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/plugin"
-	"github.com/mesanine/gaffer/plugin/supervisor"
 )
-
-var plugins = []plugin.Plugin{supervisor.New()}
 
 func remoteCMD(cfg *config.Config) func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
@@ -24,7 +21,7 @@ func remoteCMD(cfg *config.Config) func(*cli.Cmd) {
 		cmd.Before = func() {
 			cfg.Address = *address
 		}
-		for _, p := range plugins {
+		for _, p := range getPlugins(cfg.Plugins) {
 			if c, ok := p.(plugin.CLI); ok {
 				cmd.Command(p.Name(), fmt.Sprintf("%s commands", p.Name()), c.CLI(cfg))
 			}

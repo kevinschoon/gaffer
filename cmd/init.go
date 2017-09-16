@@ -15,7 +15,7 @@ func initCMD(cfg *config.Config) func(*cli.Cmd) {
 	return func(cmd *cli.Cmd) {
 		recovery := cmd.Bool(cli.BoolOpt{
 			Name:   "r recovery",
-			Desc:   "launch a recovery shell",
+			Desc:   "Launch a recovery shell",
 			Value:  false,
 			EnvVar: "GAFFER_RECOVERY_SHELL",
 		})

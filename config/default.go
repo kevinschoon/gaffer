@@ -22,5 +22,6 @@ var Default = &Config{
 	},
 	RuncRoot:  "/run/runc",
 	Endpoints: []string{"http://127.0.0.1:2379"},
+	Plugins:   []string{"supervisor", "register"},
 	Address:   "unix:///tmp/gaffer.sock",
 }

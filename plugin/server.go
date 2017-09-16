@@ -3,6 +3,7 @@ package plugin
 import (
 	"fmt"
 	"github.com/mesanine/gaffer/config"
+	"github.com/mesanine/gaffer/log"
 	"github.com/mesanine/ginit"
 	"google.golang.org/grpc"
 	"net"
@@ -46,6 +47,10 @@ func (s *Server) Run(reg *Registry) error {
 	for _, plugin := range reg.plugins {
 		if rpc, ok := plugin.(RPC); ok {
 			s.grpc.RegisterService(rpc.RPC(), plugin)
+			log.Log.Info(fmt.Sprintf("registered plugin RPC service %s", plugin.Name()))
+			for _, method := range rpc.RPC().Methods {
+				log.Log.Info(fmt.Sprintf("service %s registers method: %s", plugin.Name(), method.MethodName))
+			}
 		}
 	}
 	return s.grpc.Serve(s.listener)
@@ -54,8 +59,8 @@ func (s *Server) Run(reg *Registry) error {
 // Handle implements the ginit.Handler interface.
 func (s Server) Handle(sig os.Signal) error {
 	if ginit.Terminal(sig) {
-		s.grpc.Stop()
-		return s.listener.Close()
+		s.grpc.GracefulStop()
+		return nil
 	}
 	return nil
 }

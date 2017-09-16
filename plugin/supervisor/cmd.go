@@ -15,11 +15,11 @@ func (s Supervisor) CLI(cfg *config.Config) cli.CmdInitializer {
 			util.Maybe(err)
 			client = NewRPCClient(conn)
 		}
-		cmd.Command("restart", "restart a service", func(cmd *cli.Cmd) {
+		cmd.Command("restart", "Restart a service", func(cmd *cli.Cmd) {
 			cmd.Spec = "ID"
 			id := cmd.String(cli.StringArg{
 				Name:  "ID",
-				Desc:  "service ID to restart",
+				Desc:  "Service ID to restart",
 				Value: "",
 			})
 			var req *RestartRequest
@@ -32,7 +32,7 @@ func (s Supervisor) CLI(cfg *config.Config) cli.CmdInitializer {
 				util.JSONToStdout(resp)
 			}
 		})
-		cmd.Command("status", "return the status of a service", func(cmd *cli.Cmd) {
+		cmd.Command("status", "Return the status of a service", func(cmd *cli.Cmd) {
 			cmd.Action = func() {
 				resp, err := client.Status(context.Background(), &StatusRequest{}, cfg.CallOpts()...)
 				util.Maybe(err)

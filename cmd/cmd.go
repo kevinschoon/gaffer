@@ -5,8 +5,12 @@ import (
 	"github.com/jawher/mow.cli"
 	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/log"
+	"github.com/mesanine/gaffer/plugin"
+	"github.com/mesanine/gaffer/plugin/register"
+	"github.com/mesanine/gaffer/plugin/supervisor"
 	"github.com/mesanine/gaffer/util"
 	"github.com/mesanine/gaffer/version"
+
 	"os"
 )
 
@@ -14,47 +18,53 @@ func Run() {
 	cfg := &config.Config{}
 	app := cli.App("gaffer", "Distributed Init System")
 	app.Spec = "[OPTIONS]"
-	var configPath = app.StringOpt("c config", "", "path to a gaffer.json file")
+	var configPath = app.StringOpt("c config", "", "Path to a gaffer.json configuration file")
 	app.Version("version", fmt.Sprintf("version=%s\ngitsha=%s", version.Version, version.GitSHA))
+	plugins := app.Strings(cli.StringsOpt{
+		Name:   "p plugin",
+		Desc:   "Toggled plugins",
+		Value:  config.Default.Plugins,
+		EnvVar: "GAFFER_PLUGINS",
+	})
 	device := app.String(cli.StringOpt{
 		Name:   "d device",
-		Desc:   "send log output to a block device",
+		Desc:   "Send log output to a block device",
 		Value:  config.Default.Logger.Device,
 		EnvVar: "GAFFER_LOGGER_DEVICE",
 	})
 	logDir := app.String(cli.StringOpt{
 		Name:   "log-dir",
-		Desc:   "send log output to files in this directory",
+		Desc:   "Send log output to files in this directory",
 		Value:  config.Default.Logger.LogDir,
 		EnvVar: "GAFFER_LOGGER_DIRECTORY",
 	})
 	maxLogSize := app.Int(cli.IntOpt{
 		Name:   "max-log-size",
-		Desc:   "maximum log file size in mb",
+		Desc:   "Maximum log file size in mb",
 		Value:  config.Default.Logger.MaxSize,
 		EnvVar: "GAFFER_LOGGER_MAX_SIZE",
 	})
 	maxBackups := app.Int(cli.IntOpt{
 		Name:   "max-backups",
-		Desc:   "maximum number of backups to rotate",
+		Desc:   "Maximum number of backups to rotate",
 		Value:  config.Default.Logger.MaxBackups,
 		EnvVar: "GAFFER_LOGGER_MAX_BACKUPS",
 	})
 	compress := app.Bool(cli.BoolOpt{
 		Name:   "compress",
-		Desc:   "compress rotated log files",
+		Desc:   "Compress rotated log files",
 		Value:  config.Default.Logger.Compress,
 		EnvVar: "GAFFER_LOGGER_COMPRESS",
 	})
 	debug := app.Bool(cli.BoolOpt{
 		Name:   "debug",
-		Desc:   "output debugging information",
+		Desc:   "Output debugging information",
 		Value:  config.Default.Logger.Debug,
 		EnvVar: "GAFFER_LOGGER_DEBUG",
 	})
 	endpoints := app.Strings(cli.StringsOpt{
 		Name:   "e endpoints",
-		Desc:   "etcd endpoint",
+		Desc:   "Etcd endpoint",
 		Value:  config.Default.Endpoints,
 		EnvVar: "GAFFER_ENDPOINT",
 	})
@@ -63,6 +73,7 @@ func Run() {
 			util.Maybe(config.Load(*configPath, cfg))
 		}
 		cfg.Endpoints = *endpoints
+		cfg.Plugins = *plugins
 		cfg.Logger.Device = *device
 		cfg.Logger.LogDir = *logDir
 		cfg.Logger.MaxSize = *maxLogSize
@@ -72,9 +83,24 @@ func Run() {
 		// Initialize the logger
 		util.Maybe(log.Setup(*cfg))
 	}
-	app.Command("init", "bootstrap the operating system", initCMD(cfg))
-	app.Command("run", "run the main gaffer system", runCMD(cfg))
-	app.Command("hosts", "list remote gaffer hosts", hostsCMD(cfg))
-	app.Command("remote", "make RPC calls against a host", remoteCMD(cfg))
+	app.Command("init", "Bootstrap the operating system", initCMD(cfg))
+	app.Command("run", "Run the main gaffer system", runCMD(cfg))
+	app.Command("hosts", "List remote gaffer hosts", hostsCMD(cfg))
+	app.Command("remote", "Make RPC calls against a host", remoteCMD(cfg))
 	util.Maybe(app.Run(os.Args))
+}
+
+func getPlugins(toggles []string) []plugin.Plugin {
+	plugins := []plugin.Plugin{}
+	for _, toggle := range toggles {
+		switch toggle {
+		case "supervisor":
+			plugins = append(plugins, supervisor.New())
+		case "register":
+			plugins = append(plugins, register.New())
+		default:
+			util.Maybe(fmt.Errorf("unknown plugin: %s", toggle))
+		}
+	}
+	return plugins
 }
