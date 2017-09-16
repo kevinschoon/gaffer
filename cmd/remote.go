@@ -21,7 +21,7 @@ func remoteCMD(cfg *config.Config) func(*cli.Cmd) {
 		cmd.Before = func() {
 			cfg.Address = *address
 		}
-		for _, p := range getPlugins(cfg) {
+		for _, p := range allPlugins() {
 			if c, ok := p.(plugin.CLI); ok {
 				cmd.Command(p.Name(), fmt.Sprintf("%s commands", p.Name()), c.CLI(cfg))
 			}

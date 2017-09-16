@@ -46,8 +46,12 @@ func NewServer(cfg config.Config) (*Server, error) {
 func (s *Server) Run(reg *Registry) error {
 	for _, plugin := range reg.plugins {
 		if rpc, ok := plugin.(RPC); ok {
+			// TODO: Errors here silently os.Exit(1)
+			// due to Google's inability to write
+			// libraries that do not implement their
+			// own weird and inconvenient global loggers.
 			s.grpc.RegisterService(rpc.RPC(), plugin)
-			log.Log.Info(fmt.Sprintf("registered plugin RPC service %s", plugin.Name()))
+			log.Log.Info(fmt.Sprintf("registered plugin RPC service: %s", plugin.Name()))
 			for _, method := range rpc.RPC().Methods {
 				log.Log.Info(fmt.Sprintf("service %s registers method: %s", plugin.Name(), method.MethodName))
 			}

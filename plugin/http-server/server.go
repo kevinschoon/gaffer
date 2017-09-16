@@ -94,14 +94,14 @@ func (s *Server) Stop() error {
 }
 
 func (s *Server) Configure(cfg config.Config) error {
-	if cfg.User.User != "" {
-		usr, err := user.FromString(cfg.User.User)
+	if cfg.User != "" {
+		usr, err := user.FromString(cfg.User)
 		if err != nil {
 			return err
 		}
 		s.user = usr
 	}
-	s.port = cfg.Plugins.HTTPServer.Port
+	s.port = 8080
 	s.status = Status{}
 	s.stop = make(chan bool, 1)
 	return nil

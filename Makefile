@@ -35,6 +35,7 @@ protos:
 	rm -v host/*.pb.go 2>/dev/null || true
 	rm -v service/*.pb.go 2>/dev/null || true
 	protoc --proto_path=$(GOPATH)/src --go_out=plugins=grpc:$(GOPATH)/src $(GOPATH)/$(SRCPATH)/plugin/supervisor/*.proto
+	protoc --proto_path=$(GOPATH)/src --go_out=plugins=grpc:$(GOPATH)/src $(GOPATH)/$(SRCPATH)/plugin/logger/*.proto
 	protoc --proto_path=$(GOPATH)/src --go_out=$(GOPATH)/src $(GOPATH)/$(SRCPATH)/host/*.proto
 	protoc --proto_path=$(GOPATH)/src --go_out=$(GOPATH)/src $(GOPATH)/$(SRCPATH)/service/*.proto
 	protoc --proto_path=$(GOPATH)/src --go_out=$(GOPATH)/src $(GOPATH)/$(SRCPATH)/event/*.proto

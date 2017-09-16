@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package logger;
+
+service RPC {
+  rpc Read (ReadRequest) returns (ReadResponse) {}
+}
+
+
+message ReadRequest {}
+
+message ReadResponse {
+  bytes data =1;
+}

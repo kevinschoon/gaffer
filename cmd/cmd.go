@@ -6,6 +6,8 @@ import (
 	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/log"
 	"github.com/mesanine/gaffer/plugin"
+	"github.com/mesanine/gaffer/plugin/logger"
+	"github.com/mesanine/gaffer/plugin/metrics"
 	"github.com/mesanine/gaffer/plugin/register"
 	"github.com/mesanine/gaffer/plugin/supervisor"
 	"github.com/mesanine/gaffer/util"
@@ -101,6 +103,10 @@ func getPlugins(cfg *config.Config) []plugin.Plugin {
 	plugins := []plugin.Plugin{}
 	for _, p := range cfg.Plugins() {
 		switch p {
+		case "logger":
+			plugins = append(plugins, logger.New())
+		case "metrics":
+			plugins = append(plugins, metrics.New())
 		case "supervisor":
 			plugins = append(plugins, supervisor.New())
 		case "register":
@@ -110,4 +116,8 @@ func getPlugins(cfg *config.Config) []plugin.Plugin {
 		}
 	}
 	return plugins
+}
+
+func allPlugins() []plugin.Plugin {
+	return []plugin.Plugin{logger.New(), metrics.New(), supervisor.New(), register.New()}
 }
