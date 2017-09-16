@@ -20,11 +20,17 @@ func Run() {
 	app.Spec = "[OPTIONS]"
 	var configPath = app.StringOpt("c config", "", "Path to a gaffer.json configuration file")
 	app.Version("version", fmt.Sprintf("version=%s\ngitsha=%s", version.Version, version.GitSHA))
-	plugins := app.Strings(cli.StringsOpt{
+	enabled := app.Strings(cli.StringsOpt{
 		Name:   "p plugin",
 		Desc:   "Toggled plugins",
-		Value:  config.Default.Plugins,
-		EnvVar: "GAFFER_PLUGINS",
+		Value:  config.Default.EnabledPlugins,
+		EnvVar: "GAFFER_ENABLED_PLUGINS",
+	})
+	disabled := app.Strings(cli.StringsOpt{
+		Name:   "disable",
+		Desc:   "Disable the specified plugin",
+		Value:  config.Default.DisabledPlugins,
+		EnvVar: "GAFFER_DISABLED_PLUGINS",
 	})
 	device := app.String(cli.StringOpt{
 		Name:   "d device",
@@ -73,7 +79,8 @@ func Run() {
 			util.Maybe(config.Load(*configPath, cfg))
 		}
 		cfg.Endpoints = *endpoints
-		cfg.Plugins = *plugins
+		cfg.EnabledPlugins = *enabled
+		cfg.DisabledPlugins = *disabled
 		cfg.Logger.Device = *device
 		cfg.Logger.LogDir = *logDir
 		cfg.Logger.MaxSize = *maxLogSize
@@ -90,16 +97,16 @@ func Run() {
 	util.Maybe(app.Run(os.Args))
 }
 
-func getPlugins(toggles []string) []plugin.Plugin {
+func getPlugins(cfg *config.Config) []plugin.Plugin {
 	plugins := []plugin.Plugin{}
-	for _, toggle := range toggles {
-		switch toggle {
+	for _, p := range cfg.Plugins() {
+		switch p {
 		case "supervisor":
 			plugins = append(plugins, supervisor.New())
 		case "register":
 			plugins = append(plugins, register.New())
 		default:
-			util.Maybe(fmt.Errorf("unknown plugin: %s", toggle))
+			util.Maybe(fmt.Errorf("unknown plugin: %s", p))
 		}
 	}
 	return plugins

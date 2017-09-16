@@ -20,8 +20,9 @@ var Default = &Config{
 		MaxBackups: 2,
 		Compress:   true,
 	},
-	RuncRoot:  "/run/runc",
-	Endpoints: []string{"http://127.0.0.1:2379"},
-	Plugins:   []string{"supervisor", "register"},
-	Address:   "unix:///tmp/gaffer.sock",
+	RuncRoot:        "/run/runc",
+	Endpoints:       []string{"http://127.0.0.1:2379"},
+	EnabledPlugins:  []string{"supervisor", "register"},
+	DisabledPlugins: []string{},
+	Address:         "unix:///tmp/gaffer.sock",
 }

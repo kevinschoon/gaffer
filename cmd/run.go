@@ -74,7 +74,7 @@ func runCMD(cfg *config.Config) cli.CmdInitializer {
 			util.Maybe(db.Init())
 			handlers := []ginit.Handler{}
 			reg := plugin.NewRegistry()
-			for _, p := range getPlugins(cfg.Plugins) {
+			for _, p := range getPlugins(cfg) {
 				util.Maybe(reg.Register(p))
 			}
 			util.Maybe(reg.Configure(*cfg))

@@ -19,7 +19,25 @@ type Config struct {
 	// Runc root path
 	RuncRoot string `json:"runc_root"`
 	// Enabled plugins
-	Plugins []string `json:"plugins:`
+	EnabledPlugins []string `json:"enabled_plugins`
+	// Disabled plugins
+	DisabledPlugins []string `json:"disabled_plugins"`
+	// HTTP User
+	User string `json:"user"`
+}
+
+func (c Config) Plugins() []string {
+	plugins := []string{}
+loop:
+	for _, name := range c.EnabledPlugins {
+		for _, other := range c.DisabledPlugins {
+			if other == name {
+				continue loop
+			}
+		}
+		plugins = append(plugins, name)
+	}
+	return plugins
 }
 
 func (c Config) DailOpts() []grpc.DialOption {
