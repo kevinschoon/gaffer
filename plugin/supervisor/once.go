@@ -17,7 +17,7 @@ func Once(cfg config.Config, db *store.FSStore) error {
 	}
 	for _, svc := range services {
 		log.Log.Info(fmt.Sprintf("starting on-boot service %s", svc.Id))
-		code, err := runc.New(svc.Id, svc.Bundle, cfg).Run()
+		code, err := runc.New(svc.Id, svc.Bundle, cfg.RuncRoot).Run()
 		log.Log.Info(fmt.Sprintf("on-boot service %s exited with code %d", svc.Id, code))
 		if code != 0 || err != nil {
 			if err == nil {

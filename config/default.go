@@ -1,6 +1,6 @@
 package config
 
-var DefaultConfig = &Config{
+var Default = &Config{
 	Init: Init{
 		Helper:  "/bin/gaffer-helper",
 		NewRoot: "/mnt",
@@ -11,13 +11,6 @@ var DefaultConfig = &Config{
 		BasePath:   "/containers",
 		ConfigPath: "/var/mesanine",
 	},
-	Runc: Runc{
-		Root: "/run/runc",
-	},
-	Etcd: Etcd{
-		Endpoints: []string{"http://127.0.0.1:2379"},
-	},
-	User: User{},
 	Logger: Logger{
 		JSON:       false,
 		Debug:      false,
@@ -27,16 +20,7 @@ var DefaultConfig = &Config{
 		MaxBackups: 2,
 		Compress:   true,
 	},
-	Enabled: []string{"gaffer.supervisor", "gaffer.register"},
-	Plugins: struct {
-		RPCServer  RPCServer  `json:"rpc_server"`
-		HTTPServer HTTPServer `json:"http_server"`
-	}{
-		RPCServer: RPCServer{
-			Port: 10000,
-		},
-		HTTPServer: HTTPServer{
-			Port: 9090,
-		},
-	},
+	RuncRoot:  "/run/runc",
+	Endpoints: []string{"http://127.0.0.1:2379"},
+	Address:   "unix:///tmp/gaffer.sock",
 }

@@ -3,10 +3,12 @@ package register
 import (
 	"fmt"
 	"github.com/cenkalti/backoff"
+	"github.com/jawher/mow.cli"
 	"github.com/mesanine/gaffer/client"
 	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/event"
 	"github.com/mesanine/gaffer/log"
+	"google.golang.org/grpc"
 	"time"
 )
 
@@ -68,4 +70,9 @@ func (s *Server) Run(eb *event.EventBus) error {
 func (s *Server) Stop() error {
 	s.stop <- true
 	return nil
+}
+
+func (s *Server) RPC(*grpc.Server) {}
+func (s *Server) CLI(*grpc.ClientConn) cli.CmdInitializer {
+	return func(*cli.Cmd) {}
 }

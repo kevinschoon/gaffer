@@ -19,12 +19,12 @@ func (mp *MockPlugin) Configure(config.Config) error {
 	return nil
 }
 
-func (mp *MockPlugin) Run(*event.EventBus) error {
+func (mp MockPlugin) Run(*event.EventBus) error {
 	<-mp.stop
 	return nil
 }
 
-func (mp *MockPlugin) Stop() error {
+func (mp MockPlugin) Stop() error {
 	mp.stop <- true
 	return nil
 }

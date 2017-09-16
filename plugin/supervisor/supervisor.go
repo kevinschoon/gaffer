@@ -8,8 +8,11 @@ import (
 	"github.com/mesanine/gaffer/event"
 	"github.com/mesanine/gaffer/log"
 	"github.com/mesanine/gaffer/runc"
+	"github.com/mesanine/gaffer/service"
+
 	"github.com/mesanine/gaffer/store"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 	"time"
 )
 
@@ -21,28 +24,38 @@ const (
 type Supervisor struct {
 	runcs  map[string]*runc.Runc
 	cancel map[string]context.CancelFunc
+	db     *store.FSStore
 	config config.Config
 	err    chan error
 	stop   chan bool
 }
 
-func (s *Supervisor) Name() string { return "gaffer.supervisor" }
+func New() *Supervisor {
+	return &Supervisor{
+		runcs:  map[string]*runc.Runc{},
+		cancel: map[string]context.CancelFunc{},
+		err:    make(chan error),
+		stop:   make(chan bool),
+		db:     nil,
+	}
+}
+
+func (s *Supervisor) Name() string { return "supervisor" }
 
 func (s *Supervisor) Configure(cfg config.Config) error {
-	services, err := store.New(cfg, "services").Services()
+	s.db = store.New(cfg, "services")
+	services, err := s.db.Services()
 	if err != nil {
 		return err
 	}
-	s.runcs = map[string]*runc.Runc{}
 	for _, svc := range services {
-		s.runcs[svc.Id] = runc.New(svc.Id, svc.Bundle, cfg)
+		s.runcs[svc.Id] = runc.New(svc.Id, svc.Bundle, cfg.RuncRoot)
 	}
-	s.cancel = map[string]context.CancelFunc{}
-	s.err = make(chan error, 1)
-	s.stop = make(chan bool, 1)
 	s.config = cfg
 	return nil
 }
+
+func (s *Supervisor) RPC() *grpc.ServiceDesc { return &_RPC_serviceDesc }
 
 func (s *Supervisor) Run(eb *event.EventBus) error {
 	// Launch all registered containers
@@ -94,12 +107,37 @@ func (s *Supervisor) Stop() error {
 	return nil
 }
 
-// Runc returns the underlying runc instance with id
-func (s *Supervisor) Runc(id string) (*runc.Runc, error) {
-	if rc, ok := s.runcs[id]; ok {
-		return rc, nil
+func (s *Supervisor) Status(ctx context.Context, req *StatusRequest) (*StatusResponse, error) {
+	resp := &StatusResponse{
+		Services: []*service.Service{},
 	}
-	return nil, fmt.Errorf("no service with id %s exists", id)
+	services, err := s.db.Services()
+	if err != nil {
+		return nil, err
+	}
+	for _, svc := range services {
+		stats, err := s.runcs[svc.Id].Stats()
+		if err != nil {
+			return nil, err
+		}
+		svc = service.WithStats(*stats)(svc)
+		resp.Services = append(resp.Services, &svc)
+	}
+	return resp, nil
+}
+
+func (s *Supervisor) Restart(ctx context.Context, req *RestartRequest) (*RestartResponse, error) {
+	rc, ok := s.runcs[req.Id]
+	if !ok {
+		return nil, fmt.Errorf("no container with id %s exists", req.Id)
+	}
+	// Kill the underlying runc app
+	// causing the supervisor to start it again.
+	err := rc.Stop()
+	if err != nil {
+		return nil, err
+	}
+	return &RestartResponse{}, nil
 }
 
 func (s *Supervisor) init(eb *event.EventBus) {

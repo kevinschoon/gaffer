@@ -5,8 +5,6 @@ import (
 	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/event"
 	"github.com/mesanine/gaffer/log"
-	rpc "github.com/mesanine/gaffer/plugin/rpc-server"
-	"github.com/mesanine/gaffer/plugin/supervisor"
 	"github.com/mesanine/ginit"
 	"os"
 )
@@ -19,15 +17,25 @@ type shutdown struct {
 // Registry stores a collection of
 // plugins each with a unique name.
 type Registry struct {
-	eb      *event.EventBus
-	plugins map[string]Plugin
+	eventbus *event.EventBus
+	plugins  map[string]Plugin
 }
 
 func NewRegistry() *Registry {
 	return &Registry{
-		eb:      event.NewEventBus(),
-		plugins: map[string]Plugin{},
+		eventbus: event.NewEventBus(),
+		plugins:  map[string]Plugin{},
 	}
+}
+
+// Plugin returns the plugin with the
+// given id if it exists.
+func (r Registry) Plugin(id string) (Plugin, error) {
+	p, ok := r.plugins[id]
+	if !ok {
+		return nil, fmt.Errorf("no plugin named %s is available", id)
+	}
+	return p, nil
 }
 
 // Registry registers a Plugin within
@@ -40,13 +48,6 @@ func (r Registry) Register(p Plugin) error {
 	return nil
 }
 
-// Registered checks to see if a plugin
-// has been registered.
-func (r Registry) Registered(id string) bool {
-	_, ok := r.plugins[id]
-	return ok
-}
-
 // Configure configures all of the underlying plugins.
 func (r Registry) Configure(cfg config.Config) error {
 	for name, plugin := range r.plugins {
@@ -55,14 +56,6 @@ func (r Registry) Configure(cfg config.Config) error {
 			return err
 		}
 	}
-	// If the RPC server and Supervisor are running
-	// let the server call runc commands directly.
-	if r.Registered("gaffer.rpc-server") && r.Registered("gaffer.supervisor") {
-		r.plugins["gaffer.rpc-server"].(*rpc.Server).SetRuncFn(
-			r.plugins["gaffer.supervisor"].(*supervisor.Supervisor).Runc,
-		)
-	}
-
 	return nil
 }
 
@@ -92,7 +85,7 @@ func (r Registry) Run() error {
 	for name, plugin := range r.plugins {
 		log.Log.Info(fmt.Sprintf("launching plugin %s", name))
 		go func(plugin Plugin) {
-			err := plugin.Run(r.eb)
+			err := plugin.Run(r.eventbus)
 			shutdownCh <- shutdown{
 				Name: plugin.Name(),
 				Err:  err,

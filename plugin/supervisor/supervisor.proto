@@ -1,15 +1,12 @@
 syntax = "proto3";
 
-package server;
+package supervisor;
 
 import "github.com/mesanine/gaffer/host/host.proto";
 import "github.com/mesanine/gaffer/service/service.proto";
 
-// Server is an RPC server listening on each host.
 service RPC {
-  // Status returns the status of a given container service
   rpc Status (StatusRequest) returns (StatusResponse) {}
-  // Restart restarts a container service
   rpc Restart (RestartRequest) returns (RestartResponse) {}
 }
 

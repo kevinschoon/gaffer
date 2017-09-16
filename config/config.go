@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"google.golang.org/grpc"
 	"io/ioutil"
 )
 
@@ -10,16 +11,25 @@ import (
 type Config struct {
 	Init   Init   `json:"init"`
 	Store  Store  `json:"store"`
-	Runc   Runc   `json:"runc"`
-	Etcd   Etcd   `json:"etcd"`
-	User   User   `json:"user"`
 	Logger Logger `json:"logger"`
-	// List of enabled plugins
-	Enabled []string `json:"enabled"`
-	Plugins struct {
-		RPCServer  RPCServer  `json:"rpc_server"`
-		HTTPServer HTTPServer `json:"http_server"`
-	}
+	// RPC Address
+	Address string `json:"address"`
+	// etcd endpoints
+	Endpoints []string `json:"endpoints"`
+	// Runc root path
+	RuncRoot string `json:"runc_root"`
+	// Enabled plugins
+	Plugins []string `json:"plugins:`
+}
+
+func (c Config) DailOpts() []grpc.DialOption {
+	// TODO
+	return []grpc.DialOption{grpc.WithInsecure()}
+}
+
+func (c Config) CallOpts() []grpc.CallOption {
+	// TODO
+	return []grpc.CallOption{}
 }
 
 // Init holds OS initialization options
@@ -48,31 +58,6 @@ type Store struct {
 	// overrides for runc apps. This is the primary
 	// way os services are configured at boot.
 	Environment map[string]map[string]string `json:"environment"`
-}
-
-// Runc holds runc specific options.
-type Runc struct {
-	Root string `json:"root"`
-}
-
-// Etcd holds etcd specific options.
-type Etcd struct {
-	Endpoints []string `json:"endpoints"`
-}
-
-// RPCServer holds rpc-server plugin specific options.
-type RPCServer struct {
-	Port int `json:"port"`
-}
-
-// HTTPServer holds http-server plugin specific options.
-type HTTPServer struct {
-	Port int `json:"port"`
-}
-
-// User holds user specific options.
-type User struct {
-	User string `json:"user"`
 }
 
 // Logger holds logger specific options.
@@ -107,23 +92,10 @@ type Logger struct {
 	Compress bool `json:"compress"`
 }
 
-// New creates a new Config based on
-// pre-configured defaults.
-func New() *Config {
-	config := *DefaultConfig
-	return &config
-}
-
-// Load updates a configuration with options
-// specified within a file.
 func Load(path string, cfg *Config) error {
 	raw, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(raw, cfg)
-	if err != nil {
-		return err
-	}
-	return nil
+	return json.Unmarshal(raw, cfg)
 }

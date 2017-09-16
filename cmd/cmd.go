@@ -5,56 +5,76 @@ import (
 	"github.com/jawher/mow.cli"
 	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/log"
+	"github.com/mesanine/gaffer/util"
 	"github.com/mesanine/gaffer/version"
-	"go.uber.org/zap"
 	"os"
 )
 
-func maybe(err error) {
-	if err != nil {
-		if log.Log != nil {
-			log.Log.Error("gaffer encountered an un-recoverable error", zap.Error(err))
-		}
-		fmt.Printf("Error: %s\n", err.Error())
-		os.Exit(1)
-	}
-}
-
 func Run() {
+	cfg := &config.Config{}
 	app := cli.App("gaffer", "Distributed Init System")
 	app.Spec = "[OPTIONS]"
+	var configPath = app.StringOpt("c config", "", "path to a gaffer.json file")
 	app.Version("version", fmt.Sprintf("version=%s\ngitsha=%s", version.Version, version.GitSHA))
-	var (
-		configPath = app.StringOpt("c config", "", "path to a gaffer.json file")
-	)
-	cfg := config.New()
-	config.SetCLIOpts(app, cfg)
+	device := app.String(cli.StringOpt{
+		Name:   "d device",
+		Desc:   "send log output to a block device",
+		Value:  config.Default.Logger.Device,
+		EnvVar: "GAFFER_LOGGER_DEVICE",
+	})
+	logDir := app.String(cli.StringOpt{
+		Name:   "log-dir",
+		Desc:   "send log output to files in this directory",
+		Value:  config.Default.Logger.LogDir,
+		EnvVar: "GAFFER_LOGGER_DIRECTORY",
+	})
+	maxLogSize := app.Int(cli.IntOpt{
+		Name:   "max-log-size",
+		Desc:   "maximum log file size in mb",
+		Value:  config.Default.Logger.MaxSize,
+		EnvVar: "GAFFER_LOGGER_MAX_SIZE",
+	})
+	maxBackups := app.Int(cli.IntOpt{
+		Name:   "max-backups",
+		Desc:   "maximum number of backups to rotate",
+		Value:  config.Default.Logger.MaxBackups,
+		EnvVar: "GAFFER_LOGGER_MAX_BACKUPS",
+	})
+	compress := app.Bool(cli.BoolOpt{
+		Name:   "compress",
+		Desc:   "compress rotated log files",
+		Value:  config.Default.Logger.Compress,
+		EnvVar: "GAFFER_LOGGER_COMPRESS",
+	})
+	debug := app.Bool(cli.BoolOpt{
+		Name:   "debug",
+		Desc:   "output debugging information",
+		Value:  config.Default.Logger.Debug,
+		EnvVar: "GAFFER_LOGGER_DEBUG",
+	})
+	endpoints := app.Strings(cli.StringsOpt{
+		Name:   "e endpoints",
+		Desc:   "etcd endpoint",
+		Value:  config.Default.Endpoints,
+		EnvVar: "GAFFER_ENDPOINT",
+	})
 	app.Before = func() {
 		if *configPath != "" {
-			maybe(config.Load(*configPath, cfg))
+			util.Maybe(config.Load(*configPath, cfg))
 		}
+		cfg.Endpoints = *endpoints
+		cfg.Logger.Device = *device
+		cfg.Logger.LogDir = *logDir
+		cfg.Logger.MaxSize = *maxLogSize
+		cfg.Logger.MaxBackups = *maxBackups
+		cfg.Logger.Compress = *compress
+		cfg.Logger.Debug = *debug
 		// Initialize the logger
-		maybe(log.Setup(*cfg))
+		util.Maybe(log.Setup(*cfg))
 	}
-	app.Command("init", "launch the operating system", initCMD(cfg))
-	app.Command("hosts", "list remote Gaffer hosts", hostsCMD(cfg))
-	app.Command("status", "list the status of a remote host", statusCMD())
-	app.Command("restart", "restart a remote service", restartCMD())
-	// Allow Gaffer to be run in the "multi-call"
-	// style of busybox where executables are symlinked
-	// like /sbin/init --> /bin/busybox.
-	/*
-		args := []string{"gaffer"}
-		_, exe := filepath.Split(os.Args[0])
-		switch exe {
-		case "init":
-			args = append(args, "init")
-			for _, arg := range os.Args[1:] {
-				args = append(args, arg)
-			}
-			maybe(app.Run(args))
-			return
-		}
-	*/
-	maybe(app.Run(os.Args))
+	app.Command("init", "bootstrap the operating system", initCMD(cfg))
+	app.Command("run", "run the main gaffer system", runCMD(cfg))
+	app.Command("hosts", "list remote gaffer hosts", hostsCMD(cfg))
+	app.Command("remote", "make RPC calls against a host", remoteCMD(cfg))
+	util.Maybe(app.Run(os.Args))
 }

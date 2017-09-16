@@ -1,13 +1,10 @@
 package plugin
 
 import (
-	"fmt"
+	"github.com/jawher/mow.cli"
 	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/event"
-	http "github.com/mesanine/gaffer/plugin/http-server"
-	reg "github.com/mesanine/gaffer/plugin/registration"
-	rpc "github.com/mesanine/gaffer/plugin/rpc-server"
-	"github.com/mesanine/gaffer/plugin/supervisor"
+	"google.golang.org/grpc"
 )
 
 // Plugin implements some unit of work
@@ -26,16 +23,17 @@ type Plugin interface {
 	Stop() error
 }
 
-func Find(name string) Plugin {
-	switch name {
-	case "gaffer.register":
-		return &reg.Server{}
-	case "gaffer.rpc_server":
-		return &rpc.Server{}
-	case "gaffer.http_server":
-		return &http.Server{}
-	case "gaffer.supervisor":
-		return &supervisor.Supervisor{}
-	}
-	panic(fmt.Sprintf("unknown plugin %s", name))
+// RPC returns a grpc.ServiceDesc
+// that will be used to expose
+// methods via the global Gaffer
+// RPC server.
+type RPC interface {
+	RPC() *grpc.ServiceDesc
+}
+
+// CLI returns a CmdInitializer that
+// can be used to expose functionality
+// to the Gaffer CLI.
+type CLI interface {
+	CLI(*config.Config) cli.CmdInitializer
 }

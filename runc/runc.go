@@ -3,7 +3,6 @@ package runc
 import (
 	"context"
 	"github.com/containerd/go-runc"
-	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/log"
 	"go.uber.org/zap"
 	"syscall"
@@ -83,11 +82,11 @@ func (rc *Runc) Uptime() time.Duration {
 	return time.Since(rc.started)
 }
 
-func New(id, bundle string, cfg config.Config) *Runc {
+func New(id, bundle, root string) *Runc {
 	rc := &Runc{
 		id:     id,
 		bundle: bundle,
-		rc:     &runc.Runc{Root: cfg.Runc.Root},
+		rc:     &runc.Runc{Root: root},
 	}
 	return rc
 }
