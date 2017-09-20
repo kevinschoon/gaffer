@@ -1,6 +1,7 @@
 DOCKER_IMAGE := mesanine/gaffer
 SRCPATH := src/github.com/mesanine/gaffer
 VERSION_PATH ?= "github.com/mesanine/gaffer/version"
+PWD := $(shell pwd)
 GOPATH := $(shell echo $$GOPATH)
 GITSHA ?= $(shell git rev-parse HEAD)
 VERSION ?= $(shell git describe --tags 2>/dev/null)
