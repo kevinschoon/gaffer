@@ -8,8 +8,9 @@ It is generated from these files:
 	github.com/mesanine/gaffer/plugin/logger/logger.proto
 
 It has these top-level messages:
+	WriteResponse
 	ReadRequest
-	ReadResponse
+	LogData
 */
 package logger
 
@@ -33,33 +34,74 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
+type WriteResponse struct {
+}
+
+func (m *WriteResponse) Reset()                    { *m = WriteResponse{} }
+func (m *WriteResponse) String() string            { return proto.CompactTextString(m) }
+func (*WriteResponse) ProtoMessage()               {}
+func (*WriteResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
+
 type ReadRequest struct {
+	Follow bool  `protobuf:"varint,1,opt,name=follow" json:"follow,omitempty"`
+	Lines  int64 `protobuf:"varint,2,opt,name=lines" json:"lines,omitempty"`
+	Offset int64 `protobuf:"varint,3,opt,name=offset" json:"offset,omitempty"`
 }
 
 func (m *ReadRequest) Reset()                    { *m = ReadRequest{} }
 func (m *ReadRequest) String() string            { return proto.CompactTextString(m) }
 func (*ReadRequest) ProtoMessage()               {}
-func (*ReadRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
+func (*ReadRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
 
-type ReadResponse struct {
-	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+func (m *ReadRequest) GetFollow() bool {
+	if m != nil {
+		return m.Follow
+	}
+	return false
 }
 
-func (m *ReadResponse) Reset()                    { *m = ReadResponse{} }
-func (m *ReadResponse) String() string            { return proto.CompactTextString(m) }
-func (*ReadResponse) ProtoMessage()               {}
-func (*ReadResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
-
-func (m *ReadResponse) GetData() []byte {
+func (m *ReadRequest) GetLines() int64 {
 	if m != nil {
-		return m.Data
+		return m.Lines
+	}
+	return 0
+}
+
+func (m *ReadRequest) GetOffset() int64 {
+	if m != nil {
+		return m.Offset
+	}
+	return 0
+}
+
+type LogData struct {
+	Content []byte `protobuf:"bytes,1,opt,name=content,proto3" json:"content,omitempty"`
+	Offset  int64  `protobuf:"varint,2,opt,name=offset" json:"offset,omitempty"`
+}
+
+func (m *LogData) Reset()                    { *m = LogData{} }
+func (m *LogData) String() string            { return proto.CompactTextString(m) }
+func (*LogData) ProtoMessage()               {}
+func (*LogData) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
+
+func (m *LogData) GetContent() []byte {
+	if m != nil {
+		return m.Content
 	}
 	return nil
 }
 
+func (m *LogData) GetOffset() int64 {
+	if m != nil {
+		return m.Offset
+	}
+	return 0
+}
+
 func init() {
+	proto.RegisterType((*WriteResponse)(nil), "logger.WriteResponse")
 	proto.RegisterType((*ReadRequest)(nil), "logger.ReadRequest")
-	proto.RegisterType((*ReadResponse)(nil), "logger.ReadResponse")
+	proto.RegisterType((*LogData)(nil), "logger.LogData")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -73,7 +115,8 @@ const _ = grpc.SupportPackageIsVersion4
 // Client API for RPC service
 
 type RPCClient interface {
-	Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadResponse, error)
+	Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (RPC_ReadClient, error)
+	Write(ctx context.Context, opts ...grpc.CallOption) (RPC_WriteClient, error)
 }
 
 type rPCClient struct {
@@ -84,53 +127,146 @@ func NewRPCClient(cc *grpc.ClientConn) RPCClient {
 	return &rPCClient{cc}
 }
 
-func (c *rPCClient) Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadResponse, error) {
-	out := new(ReadResponse)
-	err := grpc.Invoke(ctx, "/logger.RPC/Read", in, out, c.cc, opts...)
+func (c *rPCClient) Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (RPC_ReadClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_RPC_serviceDesc.Streams[0], c.cc, "/logger.RPC/Read", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &rPCReadClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type RPC_ReadClient interface {
+	Recv() (*LogData, error)
+	grpc.ClientStream
+}
+
+type rPCReadClient struct {
+	grpc.ClientStream
+}
+
+func (x *rPCReadClient) Recv() (*LogData, error) {
+	m := new(LogData)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *rPCClient) Write(ctx context.Context, opts ...grpc.CallOption) (RPC_WriteClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_RPC_serviceDesc.Streams[1], c.cc, "/logger.RPC/Write", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &rPCWriteClient{stream}
+	return x, nil
+}
+
+type RPC_WriteClient interface {
+	Send(*LogData) error
+	CloseAndRecv() (*WriteResponse, error)
+	grpc.ClientStream
+}
+
+type rPCWriteClient struct {
+	grpc.ClientStream
+}
+
+func (x *rPCWriteClient) Send(m *LogData) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *rPCWriteClient) CloseAndRecv() (*WriteResponse, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(WriteResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // Server API for RPC service
 
 type RPCServer interface {
-	Read(context.Context, *ReadRequest) (*ReadResponse, error)
+	Read(*ReadRequest, RPC_ReadServer) error
+	Write(RPC_WriteServer) error
 }
 
 func RegisterRPCServer(s *grpc.Server, srv RPCServer) {
 	s.RegisterService(&_RPC_serviceDesc, srv)
 }
 
-func _RPC_Read_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ReadRequest)
-	if err := dec(in); err != nil {
+func _RPC_Read_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ReadRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RPCServer).Read(m, &rPCReadServer{stream})
+}
+
+type RPC_ReadServer interface {
+	Send(*LogData) error
+	grpc.ServerStream
+}
+
+type rPCReadServer struct {
+	grpc.ServerStream
+}
+
+func (x *rPCReadServer) Send(m *LogData) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _RPC_Write_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(RPCServer).Write(&rPCWriteServer{stream})
+}
+
+type RPC_WriteServer interface {
+	SendAndClose(*WriteResponse) error
+	Recv() (*LogData, error)
+	grpc.ServerStream
+}
+
+type rPCWriteServer struct {
+	grpc.ServerStream
+}
+
+func (x *rPCWriteServer) SendAndClose(m *WriteResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *rPCWriteServer) Recv() (*LogData, error) {
+	m := new(LogData)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
-	if interceptor == nil {
-		return srv.(RPCServer).Read(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/logger.RPC/Read",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RPCServer).Read(ctx, req.(*ReadRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return m, nil
 }
 
 var _RPC_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "logger.RPC",
 	HandlerType: (*RPCServer)(nil),
-	Methods: []grpc.MethodDesc{
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "Read",
-			Handler:    _RPC_Read_Handler,
+			StreamName:    "Read",
+			Handler:       _RPC_Read_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "Write",
+			Handler:       _RPC_Write_Handler,
+			ClientStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "github.com/mesanine/gaffer/plugin/logger/logger.proto",
 }
 
@@ -139,15 +275,20 @@ func init() {
 }
 
 var fileDescriptor0 = []byte{
-	// 155 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x32, 0x4d, 0xcf, 0x2c, 0xc9,
-	0x28, 0x4d, 0xd2, 0x4b, 0xce, 0xcf, 0xd5, 0xcf, 0x4d, 0x2d, 0x4e, 0xcc, 0xcb, 0xcc, 0x4b, 0xd5,
-	0x4f, 0x4f, 0x4c, 0x4b, 0x4b, 0x2d, 0xd2, 0x2f, 0xc8, 0x29, 0x4d, 0xcf, 0xcc, 0xd3, 0xcf, 0xc9,
-	0x4f, 0x4f, 0x4f, 0x2d, 0x82, 0x52, 0x7a, 0x05, 0x45, 0xf9, 0x25, 0xf9, 0x42, 0x6c, 0x10, 0x9e,
-	0x12, 0x2f, 0x17, 0x77, 0x50, 0x6a, 0x62, 0x4a, 0x50, 0x6a, 0x61, 0x69, 0x6a, 0x71, 0x89, 0x92,
-	0x12, 0x17, 0x0f, 0x84, 0x5b, 0x5c, 0x90, 0x9f, 0x57, 0x9c, 0x2a, 0x24, 0xc4, 0xc5, 0x92, 0x92,
-	0x58, 0x92, 0x28, 0xc1, 0xa8, 0xc0, 0xa8, 0xc1, 0x13, 0x04, 0x66, 0x1b, 0x59, 0x71, 0x31, 0x07,
-	0x05, 0x38, 0x0b, 0x19, 0x73, 0xb1, 0x80, 0x94, 0x0a, 0x09, 0xeb, 0x41, 0x0d, 0x46, 0x32, 0x47,
-	0x4a, 0x04, 0x55, 0x10, 0x62, 0x9a, 0x12, 0x43, 0x12, 0x1b, 0xd8, 0x76, 0x63, 0x40, 0x00, 0x00,
-	0x00, 0xff, 0xff, 0x69, 0x2b, 0x7f, 0xe7, 0xb6, 0x00, 0x00, 0x00,
+	// 238 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x5c, 0x90, 0x3f, 0x4f, 0xc3, 0x30,
+	0x10, 0xc5, 0xeb, 0x86, 0xa6, 0xe8, 0x00, 0x55, 0x32, 0x7f, 0x14, 0x75, 0xaa, 0x32, 0x65, 0x4a,
+	0x2a, 0x2a, 0x26, 0x46, 0x18, 0x19, 0x90, 0x19, 0x98, 0xdd, 0x72, 0x36, 0x96, 0x5c, 0x5f, 0x88,
+	0x1d, 0xf1, 0xf5, 0x51, 0x1d, 0x47, 0x0a, 0x9d, 0xac, 0xdf, 0xb3, 0x9f, 0xef, 0xbd, 0x83, 0x27,
+	0x6d, 0xc2, 0x77, 0xbf, 0xaf, 0x0f, 0x74, 0x6c, 0x8e, 0xe8, 0xa5, 0x33, 0x0e, 0x1b, 0x2d, 0x95,
+	0xc2, 0xae, 0x69, 0x6d, 0xaf, 0x8d, 0x6b, 0x2c, 0x69, 0x8d, 0x5d, 0x3a, 0xea, 0xb6, 0xa3, 0x40,
+	0x3c, 0x1f, 0xa8, 0x5c, 0xc1, 0xcd, 0x67, 0x67, 0x02, 0x0a, 0xf4, 0x2d, 0x39, 0x8f, 0xe5, 0x07,
+	0x5c, 0x09, 0x94, 0x5f, 0x02, 0x7f, 0x7a, 0xf4, 0x81, 0x3f, 0x40, 0xae, 0xc8, 0x5a, 0xfa, 0x2d,
+	0xd8, 0x86, 0x55, 0x97, 0x22, 0x11, 0xbf, 0x83, 0x85, 0x35, 0x0e, 0x7d, 0x31, 0xdf, 0xb0, 0x2a,
+	0x13, 0x03, 0x9c, 0x5e, 0x93, 0x52, 0x1e, 0x43, 0x91, 0x45, 0x39, 0x51, 0xf9, 0x0c, 0xcb, 0x37,
+	0xd2, 0xaf, 0x32, 0x48, 0x5e, 0xc0, 0xf2, 0x40, 0x2e, 0xa0, 0x0b, 0xf1, 0xc7, 0x6b, 0x31, 0xe2,
+	0xc4, 0x3c, 0x9f, 0x9a, 0x1f, 0x2d, 0x64, 0xe2, 0xfd, 0x85, 0x6f, 0xe1, 0xe2, 0x14, 0x8c, 0xdf,
+	0xd6, 0xa9, 0xc8, 0x24, 0xe6, 0x7a, 0x35, 0x8a, 0x69, 0x4c, 0x39, 0xdb, 0x32, 0xbe, 0x83, 0x45,
+	0xec, 0xc6, 0xcf, 0x6f, 0xd7, 0xf7, 0xa3, 0xf0, 0xbf, 0xfb, 0xac, 0x62, 0xfb, 0x3c, 0xee, 0x67,
+	0xf7, 0x17, 0x00, 0x00, 0xff, 0xff, 0xbf, 0x2f, 0xe6, 0x0e, 0x58, 0x01, 0x00, 0x00,
 }
