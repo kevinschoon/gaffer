@@ -157,20 +157,3 @@ func (s *Supervisor) init(eb *event.EventBus) {
 	}
 
 }
-
-// MonitorFuncs returns backoff.Operation and backoff.Notify
-// functions. The operation function is re-ran each time the
-// underlying runc container exits.
-func MonitorFuncs(id string, rc *runc.Runc) (backoff.Operation, backoff.Notify) {
-	return func() error {
-		log.Log.Info(fmt.Sprintf("Launching %s", id))
-		rc.Delete()
-		code, err := rc.Run()
-		var msg string
-		if err != nil {
-			msg = err.Error()
-		}
-		log.Log.Info(fmt.Sprintf("Service %s exited with code %d: %s", id, code, msg))
-		return fmt.Errorf("container exited")
-	}, func(err error, d time.Duration) {}
-}
