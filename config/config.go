@@ -23,7 +23,7 @@ type Config struct {
 	// Runc root path
 	RuncRoot string `json:"runc_root"`
 	// Enabled plugins
-	EnabledPlugins []string `json:"enabled_plugins`
+	EnabledPlugins []string `json:"enabled_plugins"`
 	// Disabled plugins
 	DisabledPlugins []string `json:"disabled_plugins"`
 	// HTTP User
