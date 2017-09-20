@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"google.golang.org/grpc"
 	"io/ioutil"
+	"net"
+	"net/url"
+	"time"
 )
 
 // Config holds all configurable options
@@ -40,9 +43,17 @@ loop:
 	return plugins
 }
 
-func (c Config) DailOpts() []grpc.DialOption {
-	// TODO
-	return []grpc.DialOption{grpc.WithInsecure()}
+func (c Config) DailOpts() ([]grpc.DialOption, error) {
+	opts := []grpc.DialOption{grpc.WithInsecure()}
+	u, err := url.Parse(c.Address)
+	if err != nil {
+		return nil, err
+	}
+	opts = append(opts,
+		grpc.WithDialer(func(addr string, d time.Duration) (net.Conn, error) {
+			return net.Dial(u.Scheme, u.Path)
+		}))
+	return opts, nil
 }
 
 func (c Config) CallOpts() []grpc.CallOption {

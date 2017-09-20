@@ -26,7 +26,11 @@ func JSONToStdout(o interface{}) {
 
 func NewClientConn(cfg config.Config) (*grpc.ClientConn, error) {
 	log.Log.Info(fmt.Sprintf("dailing %s", cfg.Address))
-	conn, err := grpc.Dial(cfg.Address, cfg.DailOpts()...)
+	opts, err := cfg.DailOpts()
+	if err != nil {
+		return nil, err
+	}
+	conn, err := grpc.Dial(cfg.Address, opts...)
 	if err != nil {
 		return nil, err
 	}
