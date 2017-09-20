@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"google.golang.org/grpc"
 	"io/ioutil"
 	"net"
@@ -44,14 +45,21 @@ loop:
 }
 
 func (c Config) DailOpts() ([]grpc.DialOption, error) {
+	// TODO
 	opts := []grpc.DialOption{grpc.WithInsecure()}
-	u, err := url.Parse(c.Address)
-	if err != nil {
-		return nil, err
-	}
 	opts = append(opts,
 		grpc.WithDialer(func(addr string, d time.Duration) (net.Conn, error) {
-			return net.Dial(u.Scheme, u.Path)
+			u, err := url.Parse(addr)
+			if err != nil {
+				return nil, err
+			}
+			switch u.Scheme {
+			case "unix":
+				return net.Dial(u.Scheme, u.Path)
+			case "tcp":
+				return net.Dial(u.Scheme, u.Host)
+			}
+			return nil, fmt.Errorf("bad network address: %s", addr)
 		}))
 	return opts, nil
 }
