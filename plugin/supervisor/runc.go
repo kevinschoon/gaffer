@@ -1,4 +1,4 @@
-package runc
+package supervisor
 
 import (
 	"context"
@@ -82,7 +82,7 @@ func (rc *Runc) Uptime() time.Duration {
 	return time.Since(rc.started)
 }
 
-func New(id, bundle, root string) *Runc {
+func NewRunc(id, bundle, root string) *Runc {
 	rc := &Runc{
 		id:     id,
 		bundle: bundle,

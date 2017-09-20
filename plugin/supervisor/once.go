@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/log"
-	"github.com/mesanine/gaffer/runc"
 	"github.com/mesanine/gaffer/store"
 )
 
@@ -17,7 +16,7 @@ func Once(cfg config.Config, db *store.FSStore) error {
 	}
 	for _, svc := range services {
 		log.Log.Info(fmt.Sprintf("starting on-boot service %s", svc.Id))
-		code, err := runc.New(svc.Id, svc.Bundle, cfg.RuncRoot).Run()
+		code, err := NewRunc(svc.Id, svc.Bundle, cfg.RuncRoot).Run()
 		log.Log.Info(fmt.Sprintf("on-boot service %s exited with code %d", svc.Id, code))
 		if code != 0 || err != nil {
 			if err == nil {

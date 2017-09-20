@@ -7,7 +7,6 @@ import (
 	"github.com/mesanine/gaffer/config"
 	"github.com/mesanine/gaffer/event"
 	"github.com/mesanine/gaffer/log"
-	"github.com/mesanine/gaffer/runc"
 	"github.com/mesanine/gaffer/service"
 
 	"github.com/mesanine/gaffer/store"
@@ -22,7 +21,7 @@ const (
 )
 
 type Supervisor struct {
-	runcs  map[string]*runc.Runc
+	runcs  map[string]*Runc
 	cancel map[string]context.CancelFunc
 	db     *store.FSStore
 	config config.Config
@@ -32,7 +31,7 @@ type Supervisor struct {
 
 func New() *Supervisor {
 	return &Supervisor{
-		runcs:  map[string]*runc.Runc{},
+		runcs:  map[string]*Runc{},
 		cancel: map[string]context.CancelFunc{},
 		err:    make(chan error),
 		stop:   make(chan bool),
@@ -49,7 +48,7 @@ func (s *Supervisor) Configure(cfg config.Config) error {
 		return err
 	}
 	for _, svc := range services {
-		s.runcs[svc.Id] = runc.New(svc.Id, svc.Bundle, cfg.RuncRoot)
+		s.runcs[svc.Id] = NewRunc(svc.Id, svc.Bundle, cfg.RuncRoot)
 	}
 	s.config = cfg
 	return nil
@@ -127,7 +126,7 @@ func (s *Supervisor) init(eb *event.EventBus) {
 		}
 		ctx, cancelFn := context.WithCancel(context.Background())
 		s.cancel[name] = cancelFn
-		go func(ctx context.Context, rc *runc.Runc, name string) {
+		go func(ctx context.Context, rc *Runc, name string) {
 			s.err <- backoff.RetryNotify(
 				func() error {
 					log.Log.Info(fmt.Sprintf("launching runc container %s", name))
@@ -155,5 +154,4 @@ func (s *Supervisor) init(eb *event.EventBus) {
 			)
 		}(ctx, rc, name)
 	}
-
 }
