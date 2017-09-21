@@ -22,9 +22,6 @@ test:
 	go $@ -v $(PACKAGES)
 	go vet $(PACKAGES)
 
-bindata:
-	go-bindata -pkg server -o plugin/http-server/bindata.go www/...
-
 clean:
 	rm -v ./bin/gaffer || true
 
