@@ -93,8 +93,8 @@ func Run() {
 		util.Maybe(log.Setup(*cfg))
 	}
 	app.Command("init", "Bootstrap the operating system", initCMD(cfg))
-	app.Command("run", "Run the main gaffer system", runCMD(cfg))
-	app.Command("hosts", "List remote gaffer hosts", hostsCMD(cfg))
+	app.Command("launch", "Launch plugin subsystems", launchCMD(cfg))
+	app.Command("hosts", "List remote hosts", hostsCMD(cfg))
 	app.Command("remote", "Make RPC calls against a host", remoteCMD(cfg))
 	util.Maybe(app.Run(os.Args))
 }

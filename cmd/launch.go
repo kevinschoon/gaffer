@@ -11,7 +11,7 @@ import (
 	"github.com/mesanine/ginit"
 )
 
-func runCMD(cfg *config.Config) cli.CmdInitializer {
+func launchCMD(cfg *config.Config) cli.CmdInitializer {
 	return func(cmd *cli.Cmd) {
 		cmd.Spec = "[OPTIONS]"
 		address := cmd.String(cli.StringOpt{
