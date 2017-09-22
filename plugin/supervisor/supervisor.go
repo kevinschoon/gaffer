@@ -20,6 +20,8 @@ const (
 	StatsInterval   = 2000 * time.Millisecond
 )
 
+// Supervisor implements a lightweight daemon for controlling
+// containers with the runc executable.
 type Supervisor struct {
 	runcs  map[string]*Runc
 	cancel map[string]context.CancelFunc
@@ -29,12 +31,12 @@ type Supervisor struct {
 	stop   chan bool
 }
 
+// New creates a new supervisor
 func New() *Supervisor {
 	return &Supervisor{
 		runcs:  map[string]*Runc{},
 		cancel: map[string]context.CancelFunc{},
 		err:    make(chan error),
-		stop:   make(chan bool),
 		db:     nil,
 	}
 }
@@ -59,16 +61,39 @@ func (s *Supervisor) RPC() *grpc.ServiceDesc { return &_RPC_serviceDesc }
 func (s *Supervisor) Run(eb *event.EventBus) error {
 	// Launch all registered containers
 	s.init(eb)
-	select {
-	case err := <-s.err:
-		return err
-	case <-s.stop:
-		return nil
+	ticker := time.NewTicker(900 * time.Millisecond)
+	var stopped int
+	for stopped < len(s.runcs) {
+		select {
+		case err := <-s.err:
+			if err != nil {
+				log.Log.Error("supervisor runtime error", zap.Error(err))
+				return err
+			}
+			stopped++
+		case <-ticker.C:
+			// periodically publish container metrics
+			// via the eventbus
+			for name, runc := range s.runcs {
+				stats, err := runc.Stats()
+				if err != nil {
+					log.Log.Warn(fmt.Sprintf("could not collect stats for container %s: %s", name, err))
+					continue
+				}
+				eb.Push(event.New(
+					event.SERVICE_METRICS,
+					event.WithID(name),
+					event.WithStats(*stats),
+				))
+			}
+		}
 	}
+	return nil
 }
 
 func (s *Supervisor) Stop() error {
 	for name, cancelFn := range s.cancel {
+		log.Log.Warn(fmt.Sprintf("canceling runc service %s", name))
 		// Cancel each runc backoff context
 		// causing each container to not be
 		// restarted when killed.
@@ -82,7 +107,6 @@ func (s *Supervisor) Stop() error {
 		}
 	}
 	// Signial stop to the Run() function
-	s.stop <- true
 	return nil
 }
 

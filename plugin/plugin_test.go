@@ -5,6 +5,7 @@ import (
 	"github.com/mesanine/gaffer/event"
 	"github.com/stretchr/testify/assert"
 	"sync"
+	"syscall"
 	"testing"
 )
 
@@ -39,6 +40,6 @@ func TestRegistry(t *testing.T) {
 		defer wg.Done()
 		assert.NoError(t, reg.Run())
 	}()
-	assert.NoError(t, reg.plugins["gaffer.MockPlugin"].Stop())
+	assert.NoError(t, reg.Handle(syscall.SIGINT))
 	wg.Wait()
 }
