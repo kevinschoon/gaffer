@@ -24,5 +24,5 @@ var Default = &Config{
 	Endpoints:       []string{"http://127.0.0.1:2379"},
 	EnabledPlugins:  []string{"supervisor", "register", "logger", "metrics"},
 	DisabledPlugins: []string{},
-	Address:         "unix:///tmp/gaffer.sock",
+	Address:         "unix:///var/run/gaffer.sock",
 }
