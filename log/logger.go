@@ -39,10 +39,12 @@ func Setup(config config.Config) error {
 	}
 	if config.Logger.JSON {
 		encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
+		encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 		encoder = zapcore.NewJSONEncoder(encoderConfig)
 	} else {
 		// Pretty colors if logging to console
 		encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 		encoder = zapcore.NewConsoleEncoder(encoderConfig)
 	}
 	cores := []zapcore.Core{}
